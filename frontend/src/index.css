@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  font-family: 'Barlow', sans-serif;
+  background: #f4ead7;
+  margin: 0;
+  padding: 0;
+  color: #000000;
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+#root {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Figma inner-shadow effect on toggle pill backgrounds */
+.fig-inner-shadow {
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.15);
+}
+
+/* Figma inner-shadow on active toggle button */
+.fig-active-toggle {
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Column divider — exact Figma vertical line */
+.fig-col-divider {
+  width: 1px;
+  background-color: #c7b0a4;
+  align-self: stretch;
+}
