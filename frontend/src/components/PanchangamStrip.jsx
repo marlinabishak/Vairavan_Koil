@@ -18,7 +18,7 @@ export default function PanchangamStrip({ panchangam }) {
   };
 
   return (
-    <div id="mobile-panchangam-section" className="w-full mt-7 sm:mt-9 md:mt-auto pb-1 md:pb-6 relative z-10 font-barlow text-black">
+    <div id="mobile-panchangam-section" className="w-full mt-7 sm:mt-9 md:mt-auto pb-1 md:pb-3 relative z-10 font-barlow text-black">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-8 md:px-[60px] lg:px-[100px]">
         
         {/* ======================================================== */}

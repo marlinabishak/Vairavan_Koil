@@ -38,6 +38,9 @@ const DEFAULT_OPTIONS = {
     "PUDUVAYAL", "RAMACHANDRA PURAM", "RAYAVARAM", "SIRAVAYAL", "SIRUKUDALPATTI",
     "SIVUR", "THENIPATTI", "V.LAKSHMIPURAM", "VALAYAPATTI", "VENTHAN PATTI",
     "VETRIYUR", "VIRACHILAI", "VIRAMATHI", "VISWANATHA PURAM.K"
+  ],
+  kat_type: [
+    "Lifetime", "Inheritance"
   ]
 };
 
@@ -53,13 +56,18 @@ export default function Signup() {
     mobile: '', whatsapp_number: '', code: '',
     whatsapp_same_as_mobile: false, email: '',
     regn_date: new Date().toISOString().slice(0, 10),
-    kattalai_type_id: '', kat_type: '', country_code: '91'
+    kattalai_type_id: '', kat_type: 'Lifetime', country_code: '91'
   });
   
   const [selectedBookingDate, setSelectedBookingDate] = useState(new Date().toISOString().slice(0, 10));
   const [kattalaiTypes, setKattalaiTypes] = useState(DEFAULT_KATTALAI_TYPES);
   const [bookings, setBookings] = useState([]);
-  const [dropdowns, setDropdowns] = useState({ title: [], star: [], place: [], kat_type: [] });
+  const [dropdowns, setDropdowns] = useState({ 
+    title: DEFAULT_OPTIONS.title, 
+    star: DEFAULT_OPTIONS.star, 
+    place: DEFAULT_OPTIONS.place, 
+    kat_type: DEFAULT_OPTIONS.kat_type 
+  });
   const [showTamilModal, setShowTamilModal] = useState(false);
 
   useEffect(() => {
@@ -84,16 +92,17 @@ export default function Signup() {
       const titles = options.filter(o => o.category === 'title').map(o => o.value);
       const stars = options.filter(o => o.category === 'star').map(o => o.value);
       const places = options.filter(o => o.category === 'place').map(o => o.value);
+      const katTypes = options.filter(o => o.category === 'kat_type').map(o => o.value);
       
       setDropdowns({
         title: titles.length > 0 ? titles : DEFAULT_OPTIONS.title,
         star: stars.length > 0 ? stars : DEFAULT_OPTIONS.star,
         place: places.length > 0 ? places : DEFAULT_OPTIONS.place,
-        kat_type: options.filter(o => o.category === 'kat_type').map(o => o.value)
+        kat_type: katTypes.length > 0 ? katTypes : DEFAULT_OPTIONS.kat_type
       });
     }).catch((err) => {
       console.error(err);
-      setDropdowns({ ...DEFAULT_OPTIONS, kat_type: [] });
+      setDropdowns(DEFAULT_OPTIONS);
     });
   }, []);
 
@@ -114,7 +123,7 @@ export default function Signup() {
     formData.name?.trim() &&
     formData.star?.trim() &&
     formData.place?.trim() &&
-    formData.kat_type?.trim() &&
+    (formData.kat_type?.trim() || 'Lifetime') &&
     formData.mobile?.trim() &&
     formData.permanent_address?.trim()
   );
@@ -145,10 +154,6 @@ export default function Signup() {
       alert("Please select a Place.");
       return;
     }
-    if (!formData.kat_type?.trim()) {
-      alert("Please select Sponsorship type.");
-      return;
-    }
     if (!formData.mobile?.trim()) {
       alert("Please enter Mobile Number.");
       return;
@@ -156,6 +161,9 @@ export default function Signup() {
     if (!formData.permanent_address?.trim()) {
       alert("Please enter Permanent Address.");
       return;
+    }
+    if (!formData.kat_type?.trim()) {
+      setFormData(f => ({ ...f, kat_type: 'Lifetime' }));
     }
     setShowTamilModal(true);
   };
@@ -547,12 +555,14 @@ export default function Signup() {
                   <div className="relative w-[28%] h-full">
                     <select
                       className={`${inputClass} appearance-none h-full bg-white pr-8 text-gray-700 cursor-pointer`}
-                      value={formData.kat_type || ''}
+                      value={formData.kat_type || 'Lifetime'}
                       onChange={(e) => setFormData(f => ({ ...f, kat_type: e.target.value }))}
-                      required
                     >
-                      <option value="" disabled>Sponsorship</option>
-                      {dropdowns.kat_type.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      <option value="Lifetime">Lifetime</option>
+                      <option value="Inheritance">Inheritance</option>
+                      {dropdowns.kat_type && dropdowns.kat_type.filter(opt => opt !== 'Lifetime' && opt !== 'Inheritance').map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
                     </select>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#8c8075]">
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
@@ -630,11 +640,10 @@ export default function Signup() {
             <div className="mt-5">
               <button 
                 type="submit" 
-                disabled={!isFormValid}
                 className={`w-full h-[42px] rounded-full font-barlow font-bold text-[16px] transition-all duration-300 shadow-sm ${
                   isFormValid 
                     ? 'bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow cursor-pointer active:scale-[0.99]' 
-                    : 'bg-[#5c292c]/50 text-white/80 cursor-not-allowed opacity-60'
+                    : 'bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow cursor-pointer'
                 }`}
                 title={isFormValid ? "Click to proceed to Tamil details & payment" : "Please select date, slot, and fill all required fields to register"}
               >

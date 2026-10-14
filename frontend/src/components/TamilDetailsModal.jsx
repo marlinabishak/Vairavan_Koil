@@ -201,16 +201,19 @@ export function translatePlaceToTamil(enPlace) {
 
 export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialData, englishData, isInline = false }) {
   const getInitialFormData = () => {
-    const t_ta = initialData?.title_ta || translateTitleToTamil(englishData?.title) || '';
+    const t_ta = initialData?.title_ta || translateTitleToTamil(englishData?.title) || 'திரு';
     const s_ta = initialData?.star_ta || translateStarToTamil(englishData?.star) || '';
     const p_ta = initialData?.place_ta || translatePlaceToTamil(englishData?.place) || '';
+    const n_ta = initialData?.name_ta || englishData?.name || '';
+    const amt = initialData?.amount || englishData?.amount || 1000;
+    const cmt = initialData?.comments || englishData?.comments || 'Online Devotee Registration';
     return {
       title_ta: t_ta,
-      name_ta: initialData?.name_ta || '',
+      name_ta: n_ta,
       star_ta: s_ta,
       place_ta: p_ta,
-      amount: initialData?.amount || englishData?.amount || '',
-      comments: initialData?.comments || englishData?.comments || ''
+      amount: amt,
+      comments: cmt
     };
   };
 
@@ -263,13 +266,12 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
   const validate = () => {
     const newErrors = {};
     if (!formData.title_ta?.trim()) newErrors.title_ta = "Title in Tamil is required";
-    if (!formData.name_ta?.trim()) newErrors.name_ta = "Full Name in Tamil is required";
+    if (!formData.name_ta?.trim()) newErrors.name_ta = "Full Name is required";
     if (!formData.star_ta?.trim()) newErrors.star_ta = "Star in Tamil is required";
     if (!formData.place_ta?.trim()) newErrors.place_ta = "Place in Tamil is required";
     if (!formData.amount || isNaN(formData.amount) || parseFloat(formData.amount) <= 0) {
       newErrors.amount = "Valid Kattalai amount is required";
     }
-    if (!formData.comments?.trim()) newErrors.comments = "Comments / remarks are required";
     return newErrors;
   };
 
@@ -280,8 +282,7 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
     formData.place_ta?.trim() &&
     formData.amount &&
     !isNaN(formData.amount) &&
-    parseFloat(formData.amount) > 0 &&
-    formData.comments?.trim()
+    parseFloat(formData.amount) > 0
   );
 
   const handleSubmit = (e) => {
@@ -484,14 +485,14 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
 
             <div className="flex-1 min-w-0">
               <label className="flex items-center justify-between text-[#5c292c] font-barlow font-semibold text-[12px] sm:text-[12.5px] mb-1 px-1">
-                <span>Comments / Remarks <span className="text-red-500">*</span></span>
+                <span>Comments / Remarks</span>
               </label>
               <input
                 type="text"
                 name="comments"
                 value={formData.comments}
                 onChange={handleChange}
-                placeholder="e.g. Registered By... / Special Notes"
+                placeholder="e.g. Online Devotee Registration / Special Notes"
                 className={getInputClass(!!errors.comments)}
               />
             </div>
@@ -510,19 +511,14 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
             <button
               type="button"
               onClick={onClose}
-              className="flex items-center justify-center font-barlow font-medium text-[15px] bg-white text-[#5c292c] border-2 border-[#5c292c] hover:bg-[#5c292c]/5 transition-all px-8 h-[38px] rounded-full shadow-sm"
+              className="flex items-center justify-center font-barlow font-medium text-[15px] bg-white text-[#5c292c] border-2 border-[#5c292c] hover:bg-[#5c292c]/5 transition-all px-8 h-[38px] rounded-full shadow-sm cursor-pointer"
             >
               Back to Details
             </button>
             <button
               type="submit"
-              disabled={!isFormValid}
-              className={`flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-9 h-[38px] rounded-full shadow-md ${
-                isFormValid
-                  ? 'bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow-lg cursor-pointer active:scale-[0.99]'
-                  : 'bg-[#5c292c]/50 text-white/80 cursor-not-allowed opacity-60'
-              }`}
-              title={isFormValid ? "Proceed to payment" : "Please fill in all required fields marked with * before paying"}
+              className="flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-9 h-[38px] rounded-full shadow-md bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow-lg cursor-pointer active:scale-[0.99]"
+              title="Proceed to payment"
             >
               Pay Now
             </button>

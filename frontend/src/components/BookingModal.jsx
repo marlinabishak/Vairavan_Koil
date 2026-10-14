@@ -68,7 +68,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
       booking_date: date ? new Date(date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
       amount: kattalaiType?.default_amount || '',
       code: autoCode,
-      kat_type: '',
+      kat_type: 'Lifetime',
       comments: '',
     };
   });
@@ -76,16 +76,17 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [editRequestStatus, setEditRequestStatus] = useState(null); // 'pending', 'approved', 'rejected'
-  const [dropdowns, setDropdowns] = useState({ title: [], star: [], place: [], kat_type: [] });
+  const [dropdowns, setDropdowns] = useState({ title: [], star: [], place: [], kat_type: ['Lifetime', 'Inheritance'] });
   const [showTamilModal, setShowTamilModal] = useState(false);
 
   useEffect(() => {
     api.getDropdownOptions().then(options => {
+      const katTypes = options.filter(o => o.category === 'kat_type').map(o => o.value);
       setDropdowns({
         title: options.filter(o => o.category === 'title').map(o => o.value),
         star: options.filter(o => o.category === 'star').map(o => o.value),
         place: options.filter(o => o.category === 'place').map(o => o.value),
-        kat_type: options.filter(o => o.category === 'kat_type').map(o => o.value)
+        kat_type: katTypes.length > 0 ? katTypes : ['Lifetime', 'Inheritance']
       });
     }).catch(console.error);
   }, []);
@@ -107,13 +108,13 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
     setForm((f) => ({ ...f, [field]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
 
   const isFormValid = existingBooking
-    ? Boolean(form.name?.trim() && form.kat_type?.trim())
+    ? Boolean(form.name?.trim())
     : Boolean(
         form.title?.trim() &&
         form.name?.trim() &&
         form.star?.trim() &&
         form.place?.trim() &&
-        form.kat_type?.trim() &&
+        (form.kat_type?.trim() || 'Lifetime') &&
         form.mobile?.trim() &&
         form.permanent_address?.trim() &&
         form.booking_date &&
@@ -138,8 +139,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
       return;
     }
     if (!form.kat_type?.trim()) {
-      setError("Please select Sponsorship type.");
-      return;
+      form.kat_type = 'Lifetime';
     }
     if (!form.mobile?.trim()) {
       setError("Please enter Mobile Number.");
@@ -159,7 +159,6 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
     }
     setError(null);
     // Intercept with Tamil Details modal
-    setShowTamilModal(true);
   }
 
   async function handleFinalPayNow(tamilData) {
@@ -691,9 +690,9 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
               </div>
             </div>
 
-            {/* Row 2: Star & Place */}
+            {/* Row 2: Star, Place & Sponsorship */}
             <div className="flex gap-2.5 relative">
-              <div className="relative w-1/2">
+              <div className="relative w-1/3">
                 <select 
                   className={`${selectClass} ${isLockedForUser ? 'pr-9' : ''}`}
                   value={form.star || ''}
@@ -709,7 +708,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 <LockIcon />
               </div>
 
-              <div className="relative w-1/2">
+              <div className="relative w-1/3">
                 <select 
                   className={`${selectClass} ${isLockedForUser ? 'pr-9' : ''}`}
                   value={form.place || ''}
@@ -718,6 +717,25 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 >
                   <option value="" disabled>Place</option>
                   {dropdowns.place.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#8c8075]">
+                  {!isLockedForUser && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>}
+                </div>
+                <LockIcon />
+              </div>
+
+              <div className="relative w-1/3">
+                <select 
+                  className={`${selectClass} ${isLockedForUser ? 'pr-9' : ''}`}
+                  value={form.kat_type || 'Lifetime'}
+                  onChange={set('kat_type')}
+                  disabled={isLockedForUser}
+                >
+                  <option value="Lifetime">Lifetime</option>
+                  <option value="Inheritance">Inheritance</option>
+                  {dropdowns.kat_type && dropdowns.kat_type.filter(o => o !== 'Lifetime' && o !== 'Inheritance').map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#8c8075]">
                   {!isLockedForUser && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>}
@@ -912,12 +930,8 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
             <button
               type="button"
               onClick={handlePayNow}
-              disabled={saving || !isFormValid}
-              className={`flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-9 h-[38px] rounded-full shadow-sm ${
-                isFormValid && !saving
-                  ? 'bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow cursor-pointer'
-                  : 'bg-[#5c292c]/50 text-white/80 cursor-not-allowed opacity-60'
-              }`}
+              disabled={saving}
+              className="flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-9 h-[38px] rounded-full shadow-sm bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow cursor-pointer active:scale-[0.99]"
               title={isFormValid ? "Proceed" : "Please fill all required fields to proceed"}
             >
               {saving ? 'Saving...' : (existingBooking ? (isUnlocked ? 'Update All Details' : 'Update Allowed Details') : 'Register')}

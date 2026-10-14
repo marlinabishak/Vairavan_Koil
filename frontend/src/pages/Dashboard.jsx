@@ -231,11 +231,11 @@ export default function Dashboard() {
 
   return (
     <div 
-      className="w-full min-h-screen pb-[50px] md:pb-0 flex flex-col bg-cover bg-bottom bg-no-repeat"
+      className="w-full min-h-screen md:h-screen md:max-h-screen md:overflow-hidden pb-[50px] md:pb-2 flex flex-col bg-cover bg-bottom bg-no-repeat"
       style={{ backgroundImage: "linear-gradient(rgba(244, 234, 215, 0.88), rgba(244, 234, 215, 0.88)), url('/background.png')" }}
     >
       <div id="dashboard-top-anchor" className="w-full h-0 pointer-events-none" />
-      <div className="px-4 md:px-[120px]">
+      <div className="sticky top-0 z-40 bg-[#f4ead7]/95 backdrop-blur-xs px-4 md:px-[120px]">
         <DashboardHeader
           date={date}
           panchangam={panchangam}
