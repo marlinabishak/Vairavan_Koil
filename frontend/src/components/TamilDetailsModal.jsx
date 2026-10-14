@@ -273,6 +273,17 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
     return newErrors;
   };
 
+  const isFormValid = Boolean(
+    formData.title_ta?.trim() &&
+    formData.name_ta?.trim() &&
+    formData.star_ta?.trim() &&
+    formData.place_ta?.trim() &&
+    formData.amount &&
+    !isNaN(formData.amount) &&
+    parseFloat(formData.amount) > 0 &&
+    formData.comments?.trim()
+  );
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const newErrors = validate();
@@ -505,7 +516,13 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
             </button>
             <button
               type="submit"
-              className="flex items-center justify-center font-barlow font-semibold text-[15px] bg-[#5c292c] hover:bg-[#4a2123] text-white transition-all px-9 h-[38px] rounded-full shadow-md hover:shadow-lg"
+              disabled={!isFormValid}
+              className={`flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-9 h-[38px] rounded-full shadow-md ${
+                isFormValid
+                  ? 'bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow-lg cursor-pointer active:scale-[0.99]'
+                  : 'bg-[#5c292c]/50 text-white/80 cursor-not-allowed opacity-60'
+              }`}
+              title={isFormValid ? "Proceed to payment" : "Please fill in all required fields marked with * before paying"}
             >
               Pay Now
             </button>

@@ -106,15 +106,58 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
   const set = (field) => (e) =>
     setForm((f) => ({ ...f, [field]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
 
+  const isFormValid = existingBooking
+    ? Boolean(form.name?.trim() && form.kat_type?.trim())
+    : Boolean(
+        form.title?.trim() &&
+        form.name?.trim() &&
+        form.star?.trim() &&
+        form.place?.trim() &&
+        form.kat_type?.trim() &&
+        form.mobile?.trim() &&
+        form.permanent_address?.trim() &&
+        form.booking_date &&
+        form.code
+      );
+
   async function handlePayNow() {
-    if (!form.name) {
-      setError("Please fill required fields (Name).");
+    if (!form.title?.trim()) {
+      setError("Please select Title.");
       return;
     }
-    if (!form.kat_type) {
+    if (!form.name?.trim()) {
+      setError("Please enter Full Name.");
+      return;
+    }
+    if (!form.star?.trim()) {
+      setError("Please select Star.");
+      return;
+    }
+    if (!form.place?.trim()) {
+      setError("Please select Place.");
+      return;
+    }
+    if (!form.kat_type?.trim()) {
       setError("Please select Sponsorship type.");
       return;
     }
+    if (!form.mobile?.trim()) {
+      setError("Please enter Mobile Number.");
+      return;
+    }
+    if (!form.permanent_address?.trim()) {
+      setError("Please enter Permanent Address.");
+      return;
+    }
+    if (!form.booking_date) {
+      setError("Please select Booking Date.");
+      return;
+    }
+    if (!form.code) {
+      setError("Please select an available slot.");
+      return;
+    }
+    setError(null);
     // Intercept with Tamil Details modal
     setShowTamilModal(true);
   }
@@ -869,8 +912,13 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
             <button
               type="button"
               onClick={handlePayNow}
-              disabled={saving}
-              className="flex items-center justify-center font-barlow font-semibold text-[15px] bg-[#5c292c] hover:bg-[#4a2123] text-white disabled:opacity-50 transition-all px-9 h-[38px] rounded-full shadow-sm hover:shadow"
+              disabled={saving || !isFormValid}
+              className={`flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-9 h-[38px] rounded-full shadow-sm ${
+                isFormValid && !saving
+                  ? 'bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow cursor-pointer'
+                  : 'bg-[#5c292c]/50 text-white/80 cursor-not-allowed opacity-60'
+              }`}
+              title={isFormValid ? "Proceed" : "Please fill all required fields to proceed"}
             >
               {saving ? 'Saving...' : (existingBooking ? (isUnlocked ? 'Update All Details' : 'Update Allowed Details') : 'Register')}
             </button>

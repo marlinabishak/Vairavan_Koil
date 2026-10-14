@@ -106,10 +106,55 @@ export default function Signup() {
     }
   }, [selectedBookingDate]);
 
+  const isFormValid = Boolean(
+    selectedBookingDate &&
+    formData.code &&
+    formData.kattalai_type_id &&
+    formData.title?.trim() &&
+    formData.name?.trim() &&
+    formData.star?.trim() &&
+    formData.place?.trim() &&
+    formData.kat_type?.trim() &&
+    formData.mobile?.trim() &&
+    formData.permanent_address?.trim()
+  );
+
   const handleSignup = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.mobile || !formData.code || !formData.kattalai_type_id || !selectedBookingDate) {
-      alert("Please fill all required fields and select an available slot.");
+    if (!selectedBookingDate) {
+      alert("Please select a Booking Date.");
+      return;
+    }
+    if (!formData.code || !formData.kattalai_type_id) {
+      alert("Please pick an available Slot (Uchikala or Arthajama).");
+      return;
+    }
+    if (!formData.title?.trim()) {
+      alert("Please select a Title.");
+      return;
+    }
+    if (!formData.name?.trim()) {
+      alert("Please enter Full Name.");
+      return;
+    }
+    if (!formData.star?.trim()) {
+      alert("Please select a Star.");
+      return;
+    }
+    if (!formData.place?.trim()) {
+      alert("Please select a Place.");
+      return;
+    }
+    if (!formData.kat_type?.trim()) {
+      alert("Please select Sponsorship type.");
+      return;
+    }
+    if (!formData.mobile?.trim()) {
+      alert("Please enter Mobile Number.");
+      return;
+    }
+    if (!formData.permanent_address?.trim()) {
+      alert("Please enter Permanent Address.");
       return;
     }
     setShowTamilModal(true);
@@ -585,10 +630,21 @@ export default function Signup() {
             <div className="mt-5">
               <button 
                 type="submit" 
-                className="w-full h-[42px] rounded-full bg-[#5c292c] hover:bg-[#4a2123] text-white font-barlow font-bold text-[16px] transition-all duration-300 shadow-sm hover:shadow"
+                disabled={!isFormValid}
+                className={`w-full h-[42px] rounded-full font-barlow font-bold text-[16px] transition-all duration-300 shadow-sm ${
+                  isFormValid 
+                    ? 'bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow cursor-pointer active:scale-[0.99]' 
+                    : 'bg-[#5c292c]/50 text-white/80 cursor-not-allowed opacity-60'
+                }`}
+                title={isFormValid ? "Click to proceed to Tamil details & payment" : "Please select date, slot, and fill all required fields to register"}
               >
                 Register
               </button>
+              {!isFormValid && (
+                <p className="text-center text-[12px] text-[#8c7b70] mt-1.5 font-medium">
+                  * Please select date, slot, and fill all required details to register
+                </p>
+              )}
             </div>
 
           </div>
