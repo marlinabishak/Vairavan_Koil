@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, Fragment } from 'react';
+import React, { useEffect, useState, useCallback, useRef, Fragment } from 'react';
 import { api } from '../api/client.js';
 import DashboardHeader from '../components/DashboardHeader.jsx';
 import KattalaiColumn from '../components/KattalaiColumn.jsx';
@@ -61,10 +61,39 @@ export default function Dashboard() {
     }
   }, [date, searchQuery]);
 
-  useEffect(() => {
+  const initialLoadDone = useRef(false);
+
+  const forceScrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    if (document.documentElement) document.documentElement.scrollTop = 0;
+    if (document.body) document.body.scrollTop = 0;
+    const anchor = document.getElementById('dashboard-top-anchor');
+    if (anchor) {
+      anchor.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'instant' });
+    }
+  }, []);
+
+  useEffect(() => {
+    forceScrollToTop();
+    const t1 = setTimeout(forceScrollToTop, 50);
+    const t2 = setTimeout(forceScrollToTop, 150);
+    const t3 = setTimeout(forceScrollToTop, 350);
     loadAll();
-  }, [loadAll]);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [loadAll, forceScrollToTop]);
+
+  useEffect(() => {
+    if (!loading && !initialLoadDone.current && kattalaiTypes.length > 0) {
+      initialLoadDone.current = true;
+      forceScrollToTop();
+      const t = setTimeout(forceScrollToTop, 50);
+      return () => clearTimeout(t);
+    }
+  }, [loading, kattalaiTypes.length, forceScrollToTop]);
 
   async function handleTogglePresent(id, present) {
     if (!user || (user.role !== 'ulthurai' && user.role !== 'admin' && user.role !== 'superadmin')) {
@@ -205,6 +234,7 @@ export default function Dashboard() {
       className="w-full min-h-screen pb-[50px] md:pb-0 flex flex-col bg-cover bg-bottom bg-no-repeat"
       style={{ backgroundImage: "linear-gradient(rgba(244, 234, 215, 0.88), rgba(244, 234, 215, 0.88)), url('/background.png')" }}
     >
+      <div id="dashboard-top-anchor" className="w-full h-0 pointer-events-none" />
       <div className="px-4 md:px-[120px]">
         <DashboardHeader
           date={date}

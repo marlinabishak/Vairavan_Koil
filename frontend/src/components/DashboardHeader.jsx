@@ -58,7 +58,9 @@ export default function DashboardHeader({ date, panchangam, onDateChange, view, 
           <img
             src="/logo.svg"
             alt="Vairavan Koil"
-            className="w-[190px] h-[72px] sm:w-[200px] sm:h-[75px] md:w-[247px] md:h-[90px] drop-shadow-xs"
+            onClick={() => window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })}
+            className="w-[190px] h-[72px] sm:w-[200px] sm:h-[75px] md:w-[247px] md:h-[90px] drop-shadow-xs cursor-pointer hover:opacity-95 transition-opacity"
+            title="Vairavan Koil - Tap to return to top"
           />
         </div>
 

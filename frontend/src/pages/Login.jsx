@@ -11,10 +11,18 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    // Dismiss virtual keyboard immediately on mobile
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
     if (username && password) {
       try {
         setLoading(true);
         await login(username, password);
+        // Force scroll reset
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        if (document.documentElement) document.documentElement.scrollTop = 0;
+        if (document.body) document.body.scrollTop = 0;
         navigate('/dashboard');
       } catch (err) {
         console.error("Login failed", err);

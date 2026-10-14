@@ -6,6 +6,9 @@
     <script>
       // Live API endpoint
       window.__API_URL__ = window.__API_URL__ || 'https://vairavan-koil.onrender.com/api';
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+      }
     </script>
     <title>Vairavan Kovil</title>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>

@@ -14,9 +14,42 @@ import Profiles from './pages/Profiles.jsx';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
+
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+
+    const forceScrollTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+    };
+
+    // Unfocus any active element (e.g. login input / submit button)
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+
+    // Fire immediately
+    forceScrollTop();
+
+    // Fire across intervals to beat mobile keyboard collapse animation (~300ms) and dynamic DOM mounting
+    const rId = requestAnimationFrame(forceScrollTop);
+    const t1 = setTimeout(forceScrollTop, 50);
+    const t2 = setTimeout(forceScrollTop, 150);
+    const t3 = setTimeout(forceScrollTop, 300);
+    const t4 = setTimeout(forceScrollTop, 500);
+
+    return () => {
+      cancelAnimationFrame(rId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+    };
   }, [pathname]);
+
   return null;
 }
 
