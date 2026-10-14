@@ -249,6 +249,15 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
     setErrors({});
   }, [initialData, englishData, dbPlaces]);
 
+  // Build place options dynamically to ensure any existing custom value is included (must be before early return)
+  const placeOptions = React.useMemo(() => {
+    const places = [...dbPlaces];
+    if (formData.place_ta && !places.includes(formData.place_ta)) {
+      places.unshift(formData.place_ta);
+    }
+    return places;
+  }, [formData.place_ta, dbPlaces]);
+
   if (!isOpen) return null;
 
   const handleChange = (e) => {
@@ -301,15 +310,6 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
 
   const getSelectClass = (hasError) => 
     `h-[38px] px-4 rounded-full border ${hasError ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-400 bg-red-50/20' : 'border-[#e2d8cb] focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] bg-white'} font-barlow text-[14px] text-gray-800 focus:outline-none transition-all w-full appearance-none pr-8 shadow-sm hover:border-[#cfc2b2] cursor-pointer`;
-
-  // Build place options dynamically to ensure any existing custom value is included
-  const placeOptions = React.useMemo(() => {
-    const places = [...dbPlaces];
-    if (formData.place_ta && !places.includes(formData.place_ta)) {
-      places.unshift(formData.place_ta);
-    }
-    return places;
-  }, [formData.place_ta, dbPlaces]);
 
   const cardContent = (
     <div className="relative shadow-[0_20px_60px_-15px_rgba(70,40,20,0.25)] flex flex-col p-4 sm:p-6 bg-[#f7f1e5] border border-[#ebdccb] rounded-[24px] sm:rounded-[28px] max-w-[620px] w-full my-auto transition-all animate-fade-in max-h-[92vh] overflow-y-auto">
