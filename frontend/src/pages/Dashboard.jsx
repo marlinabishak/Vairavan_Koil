@@ -231,7 +231,7 @@ export default function Dashboard() {
 
   return (
     <div 
-      className="w-full min-h-screen md:h-screen md:max-h-screen md:overflow-hidden pb-[50px] md:pb-2 flex flex-col justify-between bg-cover bg-bottom bg-no-repeat"
+      className="w-full min-h-screen pb-[50px] md:pb-0 flex flex-col bg-cover bg-bottom bg-no-repeat"
       style={{ backgroundImage: "linear-gradient(rgba(244, 234, 215, 0.88), rgba(244, 234, 215, 0.88)), url('/background.png')" }}
     >
       <div id="dashboard-top-anchor" className="w-full h-0 pointer-events-none" />

@@ -33,7 +33,7 @@ export default function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[85vh] md:min-h-screen md:h-screen md:overflow-hidden px-3 sm:px-4 py-6 sm:py-8 md:py-0 w-full max-w-full overflow-x-hidden">
+    <div className="flex items-center justify-center min-h-[85vh] px-3 sm:px-4 py-6 sm:py-8 w-full max-w-full overflow-x-hidden">
       <div className="bg-[#f7f1e5] border border-[#ebdccb] p-5 sm:p-8 md:p-10 rounded-[24px] sm:rounded-[28px] shadow-[0_20px_50px_-10px_rgba(70,40,20,0.2)] w-full max-w-[420px] box-border transition-all">
         {/* Logo */}
         <div className="flex justify-center mb-5 sm:mb-6">
