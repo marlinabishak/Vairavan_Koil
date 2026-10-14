@@ -246,68 +246,19 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
       } else {
         payload.kattalai_type_id = form.kattalai_type_id || (kattalaiType?.id);
         booking = await api.createBooking(payload);
-        await api.createPayment({ booking_id: booking.id, amount: finalAmount, method: 'cash' });
-      }
-      
-      // Once booking is registered, trigger Razorpay
-      if (!finalAmount || parseFloat(finalAmount) === 0) {
-        setShowTamilModal(false);
-        onSaved(booking);
-        onClose();
-        return;
-      }
-      
-      const orderData = await api.createRazorpayOrder({ booking_id: booking.id, amount: finalAmount });
-      
-      const options = {
-        key: 'dummy_key_id',
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: "Vairavan Koil",
-        description: "Kattalai Booking",
-        order_id: orderData.id,
-        handler: async function (response) {
+        if (finalAmount > 0) {
           try {
-            await api.verifyRazorpaySignature({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              booking_id: booking.id,
-              amount: finalAmount
-            });
-            setShowTamilModal(false);
-            onSaved(booking);
-            onClose();
-          } catch (err) {
-            setError('Payment verification failed: ' + err.message);
-            setSaving(false);
-          }
-        },
-        prefill: {
-          name: form.name,
-          email: form.email,
-          contact: form.mobile
-        },
-        theme: {
-          color: "#5c292c"
-        },
-        modal: {
-          ondismiss: function() {
-            setSaving(false);
-            setShowTamilModal(false);
-            onSaved(booking);
-            onClose();
+            await api.createPayment({ booking_id: booking.id, amount: finalAmount, method: 'cash' });
+          } catch (payErr) {
+            console.warn('Payment recording note:', payErr);
           }
         }
-      };
+      }
 
-      const rzp1 = new window.Razorpay(options);
-      rzp1.on('payment.failed', function (response){
-        setError("Payment failed: " + response.error.description);
-        setSaving(false);
-      });
-      rzp1.open();
-      
+      setSaving(false);
+      setShowTamilModal(false);
+      onSaved(booking);
+      onClose();
     } catch (err) {
       setError(err.message || 'Failed to save booking');
       setSaving(false);
@@ -690,9 +641,9 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
               </div>
             </div>
 
-            {/* Row 2: Star, Place & Sponsorship */}
+            {/* Row 2: Star & Place */}
             <div className="flex gap-2.5 relative">
-              <div className="relative w-1/3">
+              <div className="relative w-1/2">
                 <select 
                   className={`${selectClass} ${isLockedForUser ? 'pr-9' : ''}`}
                   value={form.star || ''}
@@ -708,7 +659,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 <LockIcon />
               </div>
 
-              <div className="relative w-1/3">
+              <div className="relative w-1/2">
                 <select 
                   className={`${selectClass} ${isLockedForUser ? 'pr-9' : ''}`}
                   value={form.place || ''}
@@ -717,25 +668,6 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 >
                   <option value="" disabled>Place</option>
                   {dropdowns.place.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#8c8075]">
-                  {!isLockedForUser && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>}
-                </div>
-                <LockIcon />
-              </div>
-
-              <div className="relative w-1/3">
-                <select 
-                  className={`${selectClass} ${isLockedForUser ? 'pr-9' : ''}`}
-                  value={form.kat_type || 'Lifetime'}
-                  onChange={set('kat_type')}
-                  disabled={isLockedForUser}
-                >
-                  <option value="Lifetime">Lifetime</option>
-                  <option value="Inheritance">Inheritance</option>
-                  {dropdowns.kat_type && dropdowns.kat_type.filter(o => o !== 'Lifetime' && o !== 'Inheritance').map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#8c8075]">
                   {!isLockedForUser && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>}

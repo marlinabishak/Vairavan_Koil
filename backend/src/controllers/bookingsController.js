@@ -74,13 +74,49 @@ async function getBooking(req, res) {
 // POST /api/bookings
 async function createBooking(req, res) {
   const { v4: uuidv4 } = require('uuid');
-  const {
+  let {
     kattalai_type_id, kattalai_date, kattalai_month, title, name, star, place, code,
     mobile, whatsapp_number, whatsapp_same_as_mobile, email, 
     per_add_1, per_add_2, per_add_3, comm_add_1, comm_add_2, comm_add_3, comm_add_4, 
     amount, country_code, kat_type, regn_date, let_intimation,
     title_ta, name_ta, star_ta, place_ta
   } = req.body;
+
+  // Auto-resolve kattalai_type_id if default placeholder, missing, or invalid
+  if (!kattalai_type_id || kattalai_type_id === 'morning_default' || kattalai_type_id === 'evening_default') {
+    let colorKey = 'morning';
+    if (code && (code.startsWith('A/') || code.startsWith('AJ/'))) {
+      colorKey = 'evening';
+    } else if (kattalai_type_id === 'evening_default') {
+      colorKey = 'evening';
+    }
+    const { rows: matchedTypes } = await pool.query(
+      `SELECT id FROM kattalai_types WHERE color_key LIKE $1 ORDER BY display_order LIMIT 1`,
+      [`%${colorKey}%`]
+    );
+    if (matchedTypes && matchedTypes.length > 0) {
+      kattalai_type_id = matchedTypes[0].id;
+    } else {
+      const { rows: firstType } = await pool.query(`SELECT id FROM kattalai_types ORDER BY display_order LIMIT 1`);
+      if (firstType && firstType.length > 0) kattalai_type_id = firstType[0].id;
+    }
+  }
+
+  // Verify that the kattalai_type_id actually exists in kattalai_types table
+  const { rows: checkType } = await pool.query(`SELECT id FROM kattalai_types WHERE id = $1`, [kattalai_type_id]);
+  if (!checkType || checkType.length === 0) {
+    let colorKey = (code && (code.startsWith('A/') || code.startsWith('AJ/'))) ? 'evening' : 'morning';
+    const { rows: fallbackTypes } = await pool.query(
+      `SELECT id FROM kattalai_types WHERE color_key LIKE $1 ORDER BY display_order LIMIT 1`,
+      [`%${colorKey}%`]
+    );
+    if (fallbackTypes && fallbackTypes.length > 0) {
+      kattalai_type_id = fallbackTypes[0].id;
+    } else {
+      const { rows: firstType } = await pool.query(`SELECT id FROM kattalai_types ORDER BY display_order LIMIT 1`);
+      if (firstType && firstType.length > 0) kattalai_type_id = firstType[0].id;
+    }
+  }
 
   if (!kattalai_type_id || !kattalai_date || !kattalai_month || !name) {
     return res.status(400).json({ error: 'kattalai_type_id, kattalai_date, kattalai_month and name are required' });

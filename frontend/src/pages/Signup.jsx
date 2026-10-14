@@ -170,17 +170,19 @@ export default function Signup() {
 
   const handleFinalSubmit = async (tamilData) => {
     try {
-      const perParts = formData.permanent_address.split(',').map(s => s.trim());
-      const commParts = formData.communication_address.split(',').map(s => s.trim());
+      const perParts = (formData.permanent_address || '').split(',').map(s => s.trim());
+      const commParts = (formData.communication_address || '').split(',').map(s => s.trim());
       
-      const d = new Date(selectedBookingDate);
+      const [bYear, bMonth, bDate] = selectedBookingDate 
+        ? selectedBookingDate.split('-').map(Number) 
+        : [new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate()];
       
       const bookingData = {
         ...formData,
         ...tamilData,
-        kattalai_date: d.getDate(),
-        kattalai_month: d.getMonth() + 1,
-        whatsapp_number: formData.whatsapp_same_as_mobile ? formData.mobile : formData.whatsapp_number,
+        kattalai_date: bDate,
+        kattalai_month: bMonth,
+        whatsapp_number: formData.whatsapp_same_as_mobile ? formData.mobile : (formData.whatsapp_number || formData.mobile),
         per_add_1: perParts[0] || '',
         per_add_2: perParts[1] || '',
         per_add_3: perParts.slice(2).join(', ') || '',
@@ -190,8 +192,21 @@ export default function Signup() {
         comm_add_4: commParts.slice(3).join(', ') || ''
       };
 
-      const selectedType = kattalaiTypes.find(t => t.id === formData.kattalai_type_id);
-      const defaultAmt = selectedType?.default_amount || 0;
+      // Ensure proper kattalai_type_id mapping from active kattalaiTypes
+      let selectedTypeId = formData.kattalai_type_id;
+      if (!selectedTypeId || selectedTypeId === 'morning_default' || selectedTypeId === 'evening_default') {
+        const isEvening = (formData.code && (formData.code.startsWith('A/') || formData.code.startsWith('AJ/'))) || selectedTypeId === 'evening_default';
+        const found = kattalaiTypes.find(t => isEvening ? (t.color_key === 'evening-blue' || t.color_key === 'evening') : t.color_key === 'morning');
+        if (found) {
+          selectedTypeId = found.id;
+        } else if (kattalaiTypes.length > 0) {
+          selectedTypeId = kattalaiTypes[0].id;
+        }
+      }
+      bookingData.kattalai_type_id = selectedTypeId;
+
+      const selectedType = kattalaiTypes.find(t => t.id === bookingData.kattalai_type_id);
+      const defaultAmt = selectedType?.default_amount ? parseFloat(selectedType.default_amount) : 0;
       const amountToPay = (tamilData.amount !== undefined && tamilData.amount !== '') 
         ? parseFloat(tamilData.amount) 
         : defaultAmt;
@@ -201,67 +216,72 @@ export default function Signup() {
 
       const booking = await api.createBooking(bookingData);
 
-      if (!amountToPay || parseFloat(amountToPay) === 0) {
-        alert("Registration successful! The slot is now booked.");
-        setShowTamilModal(false);
-        setFormData(f => ({ ...f, code: '', kattalai_type_id: '' }));
-        if (selectedBookingDate) {
-          api.getBookings(selectedBookingDate).then(setBookings).catch(console.error);
+      if (amountToPay > 0) {
+        try {
+          await api.createPayment({ booking_id: booking.id, amount: amountToPay, method: 'cash' });
+        } catch (payErr) {
+          console.warn('Payment recording note:', payErr);
         }
-        return;
       }
 
-      const orderData = await api.createRazorpayOrder({ booking_id: booking.id, amount: amountToPay });
-      
-      const options = {
-        key: 'dummy_key_id', 
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: "Vairavan Kovil",
-        description: "Kattalai Booking",
-        order_id: orderData.id,
-        handler: async function (response) {
-          try {
-            await api.verifyRazorpaySignature({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              booking_id: booking.id,
-              amount: amountToPay
-            });
-            alert("Registration and payment successful!");
-            setShowTamilModal(false);
-            setFormData(f => ({ ...f, code: '', kattalai_type_id: '' }));
-            if (selectedBookingDate) {
-              api.getBookings(selectedBookingDate).then(setBookings).catch(console.error);
-            }
-          } catch (err) {
-            alert('Payment verification failed: ' + err.message);
-          }
-        },
-        prefill: { name: formData.name, email: formData.email, contact: formData.mobile },
-        theme: { color: "#5c292c" },
-        modal: {
-          ondismiss: function() {
-            alert("Registration successful, but payment was not completed.");
-            setShowTamilModal(false);
-            setFormData(f => ({ ...f, code: '', kattalai_type_id: '' }));
-            if (selectedBookingDate) {
-              api.getBookings(selectedBookingDate).then(setBookings).catch(console.error);
-            }
+      // Try Razorpay online payment if real keys are configured
+      try {
+        if (amountToPay > 0 && typeof window !== 'undefined' && window.Razorpay) {
+          const orderData = await api.createRazorpayOrder({ booking_id: booking.id, amount: amountToPay });
+          if (orderData && orderData.id && !orderData.is_mock) {
+            const options = {
+              key: 'dummy_key_id', 
+              amount: orderData.amount,
+              currency: orderData.currency,
+              name: "Vairavan Kovil",
+              description: "Kattalai Booking",
+              order_id: orderData.id,
+              handler: async function (response) {
+                try {
+                  await api.verifyRazorpaySignature({
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature: response.razorpay_signature,
+                    booking_id: booking.id,
+                    amount: amountToPay
+                  });
+                } catch (vErr) {
+                  console.warn('Payment verification note:', vErr);
+                }
+              },
+              prefill: { name: formData.name, email: formData.email, contact: formData.mobile },
+              theme: { color: "#5c292c" }
+            };
+            const rzp1 = new window.Razorpay(options);
+            rzp1.open();
           }
         }
-      };
+      } catch (rzpErr) {
+        console.warn('Online payment gateway note:', rzpErr);
+      }
 
-      const rzp1 = new window.Razorpay(options);
-      rzp1.on('payment.failed', function (response){
-        alert("Payment failed: " + response.error.description);
-      });
-      rzp1.open();
-
+      alert("Registration successful! The slot is now booked.");
+      setShowTamilModal(false);
+      setFormData(f => ({
+        ...f,
+        title: '',
+        name: '',
+        star: '',
+        place: '',
+        permanent_address: '',
+        communication_address: '',
+        mobile: '',
+        whatsapp_number: '',
+        code: '',
+        email: '',
+        kattalai_type_id: ''
+      }));
+      if (selectedBookingDate) {
+        api.getBookings(selectedBookingDate).then(setBookings).catch(console.error);
+      }
     } catch (err) {
-      console.error(err);
-      alert("Failed to register. Please try again.");
+      console.error('Registration failed:', err);
+      alert(err.message || "Failed to register. Please try again.");
     }
   };
 
