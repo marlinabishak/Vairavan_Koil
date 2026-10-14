@@ -87,7 +87,7 @@ npm run dev          # Runs on http://localhost:5173
 ---
 
 ## Role-Based Access Control (RBAC)
-- **Super Admin (`superadmin`)**: Complete system access, slot configuration, user profiles management, and 5-day lock override. *(Initial Password: `Spon`)*
+- **Super Admin (`superadmin`)**: Complete system access, slot configuration, user profiles management, and 5-day lock override. *(Password: `vKoil@Super2026`)*
 - **Admin (`admin`)**: Booking management, attendee tracking, and WhatsApp campaign triggers within the active window.
 - **Ulthurai (`ulthurai`)**: Temple pooja team; can only toggle attendance (Present / Absent) for today's poojas.
 - **Supporter (`supporter`)**: Staff support with read and operational assistance.
