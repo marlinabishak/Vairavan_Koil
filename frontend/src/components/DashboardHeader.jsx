@@ -53,16 +53,16 @@ export default function DashboardHeader({ date, panchangam, onDateChange, view, 
   return (
     <header className="w-full flex flex-col">
       {/* Row 1: Logo (centered on mobile, left on desktop) + Hamburger/Avatar */}
-      <div className="flex items-start justify-between relative">
-        <div className="w-full flex justify-center md:justify-start md:mt-[20px]">
+      <div className="flex items-start justify-between relative pt-3 md:pt-[20px]">
+        <div className="w-full flex justify-center md:justify-start">
           <img
             src="/logo.svg"
             alt="Vairavan Koil"
-            className="w-[200px] h-[75px] md:w-[247px] md:h-[90px]"
+            className="w-[190px] h-[72px] sm:w-[200px] sm:h-[75px] md:w-[247px] md:h-[90px] drop-shadow-xs"
           />
         </div>
 
-        <div className="absolute right-0 top-2 md:top-[40px] flex flex-col items-end">
+        <div className="absolute right-0 top-3 md:top-[40px] flex flex-col items-end">
           {/* Desktop Avatar */}
           <img
             src="/avatar.png"

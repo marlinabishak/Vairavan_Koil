@@ -62,6 +62,7 @@ export default function Dashboard() {
   }, [date, searchQuery]);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     loadAll();
   }, [loadAll]);
 

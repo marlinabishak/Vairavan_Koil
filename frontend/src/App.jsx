@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext.jsx';
 import MainLayout from './layouts/MainLayout.jsx';
 import Login from './pages/Login.jsx';
@@ -11,10 +12,19 @@ import MyHistory from './pages/MyHistory.jsx';
 import WhatsAppDashboard from './pages/WhatsAppDashboard.jsx';
 import Profiles from './pages/Profiles.jsx';
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
+  return null;
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           {/* Main layout wrapper handles the background image */}
           <Route element={<MainLayout />}>

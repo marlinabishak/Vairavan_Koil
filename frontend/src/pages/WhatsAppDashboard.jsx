@@ -152,13 +152,13 @@ export default function WhatsAppDashboard() {
         </div>
 
         {activeTab === 'campaign' && (
-          <div className="bg-white rounded-[22px] shadow-sm border border-[#ebdccb] p-5 sm:p-7 mb-6">
+          <div className="bg-white rounded-[22px] shadow-sm border border-[#ebdccb] p-4 sm:p-7 mb-6 overflow-hidden box-border w-full max-w-full">
             <h2 className="text-lg sm:text-xl font-bold text-[#5c292c] mb-1">Select Date Range</h2>
             <p className="text-xs text-gray-500 mb-5">Select a range of up to 5 days to preview upcoming pooja kattalais and trigger reminders.</p>
             
             {/* Date Inputs & Button */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 w-full max-w-full">
+              <div className="w-full min-w-0">
                 <label className="block text-xs font-semibold text-gray-700 mb-1 px-1">From Date</label>
                 <input
                   type="date"
@@ -167,23 +167,23 @@ export default function WhatsAppDashboard() {
                     setFromDate(e.target.value);
                     setToDate(e.target.value);
                   }}
-                  className="w-full h-[38px] px-4 rounded-full border border-[#e2d8cb] bg-[#faf8f7] text-xs sm:text-sm font-barlow text-gray-800 focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c]"
+                  className="w-full max-w-full box-border h-[40px] px-3.5 sm:px-4 rounded-full border border-[#e2d8cb] bg-[#faf8f7] text-[13px] sm:text-sm font-barlow text-gray-800 focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] appearance-none"
                 />
               </div>
-              <div>
+              <div className="w-full min-w-0">
                 <label className="block text-xs font-semibold text-gray-700 mb-1 px-1">To Date (Max 5 Days)</label>
                 <input
                   type="date"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="w-full h-[38px] px-4 rounded-full border border-[#e2d8cb] bg-[#faf8f7] text-xs sm:text-sm font-barlow text-gray-800 focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c]"
+                  className="w-full max-w-full box-border h-[40px] px-3.5 sm:px-4 rounded-full border border-[#e2d8cb] bg-[#faf8f7] text-[13px] sm:text-sm font-barlow text-gray-800 focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] appearance-none"
                 />
               </div>
-              <div className="flex items-end">
+              <div className="flex items-end w-full min-w-0">
                 <button
                   onClick={handlePreview}
                   disabled={previewLoading || sending}
-                  className="w-full h-[38px] bg-[#5c292c] hover:bg-[#482022] text-white rounded-full font-semibold text-xs sm:text-sm disabled:opacity-50 transition-all shadow-sm flex items-center justify-center gap-2"
+                  className="w-full max-w-full box-border h-[40px] bg-[#5c292c] hover:bg-[#482022] text-white rounded-full font-semibold text-[13px] sm:text-sm disabled:opacity-50 transition-all shadow-sm flex items-center justify-center gap-2"
                 >
                   {previewLoading ? (
                     'Loading...'
