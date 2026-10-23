@@ -11,7 +11,7 @@ export default function MainLayout() {
       </div>
       
       {/* Page Content */}
-      <div className="relative z-10 w-full h-full overflow-x-hidden md:overflow-y-auto">
+      <div id="main-content-scroll" className="relative z-10 w-full min-h-screen md:min-h-0 md:h-full md:overflow-y-auto">
         <Outlet />
       </div>
     </div>

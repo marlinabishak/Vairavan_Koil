@@ -58,7 +58,13 @@ export default function DashboardHeader({ date, panchangam, onDateChange, view, 
           <img
             src="/logo.svg"
             alt="Vairavan Koil"
-            onClick={() => window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })}
+            onClick={() => {
+              window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+              if (document.documentElement) document.documentElement.scrollTop = 0;
+              if (document.body) document.body.scrollTop = 0;
+              const mainScroll = document.getElementById('main-content-scroll');
+              if (mainScroll) mainScroll.scrollTop = 0;
+            }}
             className="w-[190px] h-[72px] sm:w-[200px] sm:h-[75px] md:w-[247px] md:h-[90px] drop-shadow-xs cursor-pointer hover:opacity-95 transition-opacity"
             title="Vairavan Koil - Tap to return to top"
           />
@@ -260,6 +266,7 @@ export default function DashboardHeader({ date, panchangam, onDateChange, view, 
           <input 
             id="mobile-date-picker"
             type="date"
+            tabIndex={-1}
             value={date}
             onChange={(e) => onDateChange(e.target.value)}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"

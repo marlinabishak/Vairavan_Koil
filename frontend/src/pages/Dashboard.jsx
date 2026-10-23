@@ -67,10 +67,10 @@ export default function Dashboard() {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     if (document.documentElement) document.documentElement.scrollTop = 0;
     if (document.body) document.body.scrollTop = 0;
-    const anchor = document.getElementById('dashboard-top-anchor');
-    if (anchor) {
-      anchor.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'instant' });
-    }
+    const mainScroll = document.getElementById('main-content-scroll');
+    if (mainScroll) mainScroll.scrollTop = 0;
+    const root = document.getElementById('root');
+    if (root) root.scrollTop = 0;
   }, []);
 
   useEffect(() => {
@@ -78,11 +78,13 @@ export default function Dashboard() {
     const t1 = setTimeout(forceScrollToTop, 50);
     const t2 = setTimeout(forceScrollToTop, 150);
     const t3 = setTimeout(forceScrollToTop, 350);
+    const t4 = setTimeout(forceScrollToTop, 600);
     loadAll();
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
+      clearTimeout(t4);
     };
   }, [loadAll, forceScrollToTop]);
 
@@ -91,7 +93,11 @@ export default function Dashboard() {
       initialLoadDone.current = true;
       forceScrollToTop();
       const t = setTimeout(forceScrollToTop, 50);
-      return () => clearTimeout(t);
+      const t2 = setTimeout(forceScrollToTop, 200);
+      return () => {
+        clearTimeout(t);
+        clearTimeout(t2);
+      };
     }
   }, [loading, kattalaiTypes.length, forceScrollToTop]);
 
@@ -234,8 +240,7 @@ export default function Dashboard() {
       className="w-full min-h-screen md:min-h-0 md:h-screen md:max-h-screen md:overflow-hidden pb-[50px] md:pb-2 flex flex-col bg-cover bg-bottom bg-no-repeat"
       style={{ backgroundImage: "linear-gradient(rgba(244, 234, 215, 0.88), rgba(244, 234, 215, 0.88)), url('/background.png')" }}
     >
-      <div id="dashboard-top-anchor" className="w-full h-0 pointer-events-none" />
-      <div className="sticky top-0 z-40 bg-[#f4ead7]/95 backdrop-blur-xs px-4 md:px-[120px]">
+      <div className="relative md:sticky md:top-0 z-40 bg-[#f4ead7]/95 backdrop-blur-xs px-4 md:px-[120px]">
         <DashboardHeader
           date={date}
           panchangam={panchangam}
