@@ -278,7 +278,7 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
     if (!formData.name_ta?.trim()) newErrors.name_ta = "Full Name is required";
     if (!formData.star_ta?.trim()) newErrors.star_ta = "Star in Tamil is required";
     if (!formData.place_ta?.trim()) newErrors.place_ta = "Place in Tamil is required";
-    if (!formData.amount || isNaN(formData.amount) || parseFloat(formData.amount) <= 0) {
+    if ((!formData.amount || isNaN(formData.amount) || parseFloat(formData.amount) <= 0) && !initialData) {
       newErrors.amount = "Valid Kattalai amount is required";
     }
     return newErrors;
@@ -306,19 +306,22 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
   };
 
   const getInputClass = (hasError) => 
-    `h-[38px] px-4 rounded-full border ${hasError ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-400 bg-red-50/20' : 'border-[#e2d8cb] focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] bg-white'} font-barlow text-[14px] text-gray-800 placeholder-[#9c9186] focus:outline-none transition-all w-full shadow-sm hover:border-[#cfc2b2]`;
+    `h-[38px] px-4 rounded-full border ${hasError ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-400 bg-red-50/20' : 'border-[#e2d8cb] focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] bg-white'} font-barlow text-[16px] sm:text-[14px] text-gray-800 placeholder-[#9c9186] focus:outline-none transition-all w-full shadow-sm hover:border-[#cfc2b2]`;
 
   const getSelectClass = (hasError) => 
-    `h-[38px] px-4 rounded-full border ${hasError ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-400 bg-red-50/20' : 'border-[#e2d8cb] focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] bg-white'} font-barlow text-[14px] text-gray-800 focus:outline-none transition-all w-full appearance-none pr-8 shadow-sm hover:border-[#cfc2b2] cursor-pointer`;
+    `h-[38px] px-4 rounded-full border ${hasError ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-400 bg-red-50/20' : 'border-[#e2d8cb] focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] bg-white'} font-barlow text-[16px] sm:text-[14px] text-gray-800 focus:outline-none transition-all w-full appearance-none pr-8 shadow-sm hover:border-[#cfc2b2] cursor-pointer`;
 
   const cardContent = (
-    <div className="relative shadow-[0_20px_60px_-15px_rgba(70,40,20,0.25)] flex flex-col p-4 sm:p-6 bg-[#f7f1e5] border border-[#ebdccb] rounded-[24px] sm:rounded-[28px] max-w-[620px] w-full my-auto transition-all animate-fade-in max-h-[92vh] overflow-y-auto">
+    <div 
+      className="relative shadow-[0_20px_60px_-15px_rgba(70,40,20,0.25)] flex flex-col p-4 sm:p-6 bg-[#f7f1e5] border border-[#ebdccb] rounded-[24px] sm:rounded-[28px] max-w-[620px] w-full my-auto transition-all animate-fade-in max-h-[92vh] overflow-y-auto"
+      style={{ maxWidth: '620px', width: '100%' }}
+    >
       <div className="w-full flex flex-col gap-3">
         
         {/* Header */}
         <div className="flex items-center justify-between px-1 pb-1">
           <h3 className="text-[17px] sm:text-[18px] font-bold text-[#5c292c] font-barlow tracking-wide">
-            Step 2: Tamil Details & Payment
+            {initialData ? 'Step 2: Tamil Details' : 'Step 2: Tamil Details & Payment'}
           </h3>
           <button
             onClick={onClose}
@@ -518,9 +521,9 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
             <button
               type="submit"
               className="flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-9 h-[38px] rounded-full shadow-md bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow-lg cursor-pointer active:scale-[0.99]"
-              title="Proceed to payment"
+              title={initialData ? "Update details" : "Proceed to payment"}
             >
-              Pay Now
+              {initialData ? "Update Details" : "Pay Now"}
             </button>
           </div>
         </form>

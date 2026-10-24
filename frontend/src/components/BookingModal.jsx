@@ -122,40 +122,42 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
       );
 
   async function handlePayNow() {
-    if (!form.title?.trim()) {
-      setError("Please select Title.");
-      return;
-    }
     if (!form.name?.trim()) {
       setError("Please enter Full Name.");
       return;
     }
-    if (!form.star?.trim()) {
-      setError("Please select Star.");
-      return;
-    }
-    if (!form.place?.trim()) {
-      setError("Please select Place.");
-      return;
+    if (!existingBooking) {
+      if (!form.title?.trim()) {
+        setError("Please select Title.");
+        return;
+      }
+      if (!form.star?.trim()) {
+        setError("Please select Star.");
+        return;
+      }
+      if (!form.place?.trim()) {
+        setError("Please select Place.");
+        return;
+      }
+      if (!form.mobile?.trim()) {
+        setError("Please enter Mobile Number.");
+        return;
+      }
+      if (!form.permanent_address?.trim()) {
+        setError("Please enter Permanent Address.");
+        return;
+      }
+      if (!form.booking_date) {
+        setError("Please select Booking Date.");
+        return;
+      }
+      if (!form.code) {
+        setError("Please select an available slot.");
+        return;
+      }
     }
     if (!form.kat_type?.trim()) {
       form.kat_type = 'Lifetime';
-    }
-    if (!form.mobile?.trim()) {
-      setError("Please enter Mobile Number.");
-      return;
-    }
-    if (!form.permanent_address?.trim()) {
-      setError("Please enter Permanent Address.");
-      return;
-    }
-    if (!form.booking_date) {
-      setError("Please select Booking Date.");
-      return;
-    }
-    if (!form.code) {
-      setError("Please select an available slot.");
-      return;
     }
     setError(null);
     // Intercept with Tamil Details modal
@@ -356,14 +358,15 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
     return slots;
   };
 
-  const inputClass = "h-[38px] px-4 rounded-full border border-[#e2d8cb] bg-white font-barlow text-[14px] text-gray-800 placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] transition-all w-full shadow-sm hover:border-[#cfc2b2] disabled:opacity-70 disabled:bg-[#f3ede3]";
-  const selectClass = "h-[38px] px-4 rounded-full border border-[#e2d8cb] bg-white font-barlow text-[14px] text-gray-800 focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] transition-all w-full appearance-none pr-8 shadow-sm hover:border-[#cfc2b2] disabled:opacity-70 disabled:bg-[#f3ede3] cursor-pointer";
+  const inputClass = "h-[38px] px-4 rounded-full border border-[#e2d8cb] bg-white font-barlow text-[16px] sm:text-[14px] text-gray-800 placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] transition-all w-full shadow-sm hover:border-[#cfc2b2] disabled:opacity-70 disabled:bg-[#f3ede3]";
+  const selectClass = "h-[38px] px-4 rounded-full border border-[#e2d8cb] bg-white font-barlow text-[16px] sm:text-[14px] text-gray-800 focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] transition-all w-full appearance-none pr-8 shadow-sm hover:border-[#cfc2b2] disabled:opacity-70 disabled:bg-[#f3ede3] cursor-pointer";
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 p-3 sm:p-4 flex items-center justify-center overflow-y-auto">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 p-2 sm:p-4 flex items-start sm:items-center justify-center overflow-y-auto">
       {!showTamilModal ? (
         <div 
-          className="relative shadow-[0_20px_60px_-15px_rgba(70,40,20,0.25)] flex flex-col p-4 sm:p-6 bg-[#f7f1e5] border border-[#ebdccb] rounded-[24px] sm:rounded-[28px] max-w-[640px] w-full my-auto transition-all animate-fade-in max-h-[92vh] overflow-y-auto"
+          className="relative shadow-[0_20px_60px_-15px_rgba(70,40,20,0.25)] flex flex-col p-4 sm:p-6 bg-[#f7f1e5] border border-[#ebdccb] rounded-[24px] sm:rounded-[28px] max-w-[620px] w-full my-auto transition-all animate-fade-in max-h-[92vh] overflow-y-auto"
+          style={{ maxWidth: '620px', width: '100%' }}
         >
           <div className="w-full flex flex-col gap-2.5">
           
@@ -471,8 +474,8 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 value={form.communication_address}
                 onChange={set('communication_address')}
               />
-              <label 
-                className="flex items-center justify-end gap-1.5 cursor-pointer text-[11.5px] text-[#6e6359] font-medium hover:text-[#5c292c] transition-colors pr-1 self-end" 
+              <div 
+                className="flex items-center justify-end gap-1.5 cursor-pointer text-[11.5px] text-[#6e6359] font-medium hover:text-[#5c292c] transition-colors pr-1 self-end select-none" 
                 onClick={() => {
                   const isSame = form.communication_address === form.permanent_address && form.permanent_address !== '';
                   setForm(f => ({ ...f, communication_address: isSame ? '' : f.permanent_address }));
@@ -481,11 +484,14 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 <input 
                   type="checkbox" 
                   checked={form.communication_address === form.permanent_address && form.permanent_address !== ''} 
-                  readOnly 
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    setForm(f => ({ ...f, communication_address: e.target.checked ? f.permanent_address : '' }));
+                  }}
                   className="w-3.5 h-3.5 rounded border-[#c7b0a4] accent-[#5c292c] cursor-pointer" 
                 />
                 <span>Use same for Communication</span>
-              </label>
+              </div>
             </div>
 
             {/* Row 5: Sponsorship & Office Code */}
@@ -547,13 +553,13 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
             <div className="flex flex-col gap-1 w-full">
               <div className="flex items-center w-full h-[38px] rounded-full border border-[#e2d8cb] bg-white focus-within:border-[#5c292c] focus-within:ring-1 focus-within:ring-[#5c292c] transition-all shadow-sm">
                 <input 
-                  className="h-full flex-1 min-w-0 bg-transparent px-3.5 font-barlow text-[13.5px] text-gray-800 placeholder-[#9c9186] focus:outline-none"
+                  className="h-full flex-1 min-w-0 bg-transparent px-3.5 font-barlow text-[16px] sm:text-[13.5px] text-gray-800 placeholder-[#9c9186] focus:outline-none"
                   placeholder="WhatsApp Number"
                   value={form.whatsapp_number || ''}
                   onChange={set('whatsapp_number')}
                 />
-                <label 
-                  className="flex items-center gap-1.5 cursor-pointer text-[11px] text-[#6e6359] font-medium hover:text-[#5c292c] transition-colors px-3 h-full border-l border-[#ebdccb] shrink-0" 
+                <div 
+                  className="flex items-center gap-1.5 cursor-pointer text-[11px] text-[#6e6359] font-medium hover:text-[#5c292c] transition-colors px-3 h-full border-l border-[#ebdccb] shrink-0 select-none" 
                   onClick={() => {
                     const isSame = form.whatsapp_number === form.mobile && form.mobile !== '';
                     setForm(f => ({ ...f, whatsapp_number: isSame ? '' : f.mobile }));
@@ -562,11 +568,14 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                   <input 
                     type="checkbox" 
                     checked={form.whatsapp_number === form.mobile && form.mobile !== ''} 
-                    readOnly 
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setForm(f => ({ ...f, whatsapp_number: e.target.checked ? f.mobile : '' }));
+                    }}
                     className="w-3.5 h-3.5 rounded border-[#c7b0a4] accent-[#5c292c] cursor-pointer" 
                   />
                   <span>Same as Mobile</span>
-                </label>
+                </div>
               </div>
             </div>
 
@@ -717,10 +726,10 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
               </div>
             </div>
 
-            {/* Row 4: Sponsorship, Mobile (+91), WhatsApp, Office Code */}
+            {/* Row 4: Sponsorship, Mobile (+91), WhatsApp, Office Code (exact compact 620px layout matching Firefox) */}
             <div className="flex gap-2 relative items-start">
               {/* Sponsorship */}
-              <div className={`relative ${isLockedForUser ? 'w-[118px]' : 'w-[125px]'} shrink-0`}>
+              <div className={`relative ${isLockedForUser ? 'w-[118px]' : 'w-[122px]'} shrink-0`}>
                 <select 
                   className="h-[38px] pl-3 pr-7 rounded-full border border-[#e2d8cb] bg-white font-barlow text-[13.5px] text-gray-800 focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] transition-all w-full appearance-none shadow-sm hover:border-[#cfc2b2] disabled:opacity-70 disabled:bg-[#f3ede3] cursor-pointer"
                   value={form.kat_type || ''}
@@ -737,7 +746,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
               </div>
 
               {/* Mobile with +91 */}
-              <div className={`flex ${isLockedForUser ? 'w-[200px]' : 'w-[175px]'} shrink-0 items-center relative`}>
+              <div className={`flex ${isLockedForUser ? 'w-[188px]' : 'w-[172px]'} shrink-0 items-center relative`}>
                 <div className="relative flex items-center w-[40px] shrink-0">
                   <span className="absolute left-2.5 text-gray-500 font-semibold text-[13px] z-10">+</span>
                   <input 
@@ -768,8 +777,8 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                   value={form.whatsapp_number || ''}
                   onChange={set('whatsapp_number')}
                 />
-                <label 
-                  className="flex items-center gap-1.5 cursor-pointer text-[11px] text-[#6e6359] font-medium hover:text-[#5c292c] transition-colors mt-1 px-1 whitespace-nowrap" 
+                <div 
+                  className="flex items-center gap-1.5 cursor-pointer text-[11px] text-[#6e6359] font-medium hover:text-[#5c292c] transition-colors mt-1 px-1 whitespace-nowrap select-none" 
                   onClick={() => {
                     const isSame = form.whatsapp_number === form.mobile && form.mobile !== '';
                     setForm(f => ({ ...f, whatsapp_number: isSame ? '' : f.mobile }));
@@ -778,24 +787,27 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                   <input 
                     type="checkbox" 
                     checked={form.whatsapp_number === form.mobile && form.mobile !== ''} 
-                    readOnly 
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setForm(f => ({ ...f, whatsapp_number: e.target.checked ? f.mobile : '' }));
+                    }}
                     className="w-3.5 h-3.5 rounded border-[#c7b0a4] accent-[#5c292c] cursor-pointer" 
                   />
                   <span>Same as Mobile</span>
-                </label>
+                </div>
               </div>
 
               {/* Office Code */}
-              <div className={`relative ${isLockedForUser ? 'w-[128px]' : 'w-[114px]'} shrink-0`}>
+              <div className={`relative ${isLockedForUser ? 'w-[116px]' : 'w-[108px]'} shrink-0`}>
                 <input 
-                  className={`h-[38px] rounded-full border border-dashed border-[#c7b0a4] bg-white font-barlow text-[13px] font-bold text-[#5c292c] text-center w-full shadow-sm placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] transition-all disabled:opacity-75 disabled:bg-[#f8f4ec] ${isLockedForUser ? 'pl-3 pr-8' : 'px-2'}`}
+                  className={`h-[38px] rounded-full border border-dashed border-[#c7b0a4] bg-white font-barlow text-[13px] font-bold text-[#5c292c] text-center w-full shadow-sm placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] transition-all disabled:opacity-75 disabled:bg-[#f8f4ec] ${isLockedForUser ? 'pl-2.5 pr-7' : 'px-2'}`}
                   placeholder="Office Code"
                   title="Office / Slot Code"
                   value={form.code || ''}
                   onChange={set('code')}
                   disabled={isLockedForUser}
                 />
-                <LockIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#f37435]" />
+                <LockIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#f37435]" />
               </div>
             </div>
 
@@ -852,7 +864,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
           )}
 
           {/* Action Buttons: Cancel & Register */}
-          <div className="flex items-center justify-center gap-4 mt-3 pt-1">
+          <div className="flex items-center justify-center gap-4 mt-3 pt-1 pb-2 sm:pb-0">
             <button
               type="button"
               onClick={onClose}

@@ -56,21 +56,30 @@ export default function KattalaiPill({ booking, onTogglePresent, onEdit, compact
 
       {/* Sponsor name: Barlow 400, 14px, black, center-aligned */}
       <p
-        className="font-barlow font-normal text-fig-14 text-fig-text text-center w-full truncate relative z-0 transition-colors"
+        onClick={() => {
+          if (canEdit && window.innerWidth < 768) {
+            onEdit && onEdit(booking);
+          }
+        }}
+        className={`font-barlow font-normal text-fig-14 text-fig-text text-center w-full truncate relative z-0 transition-colors ${canEdit ? 'cursor-pointer' : ''}`}
         style={{ paddingLeft: '30px', paddingRight: compact ? '5px' : '25px', color: isHovered ? 'rgba(0,0,0,0.8)' : 'black' }}
       >
         {compact ? truncateName(booking.name) : booking.name}
       </p>
 
-      {/* Edit pencil icon (only shows on hover for non-compact pills if admin) */}
-      {!compact && canEdit && isHovered && (
+      {/* Edit pencil icon (visible on mobile touch screens when canEdit; on desktop shows on hover) */}
+      {!compact && canEdit && (
         <button
-          onClick={() => onEdit && onEdit(booking)}
-          className="absolute right-[8px] transition-all duration-300 hover:scale-125"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit && onEdit(booking);
+          }}
+          className={`absolute right-[8px] transition-all duration-300 hover:scale-125 ${isHovered ? 'opacity-100 scale-100' : 'opacity-80 md:opacity-0 pointer-events-auto md:pointer-events-none'}`}
           style={{ zIndex: 20 }}
           title="Edit Details"
+          aria-label="Edit Details"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.6)" strokeWidth="2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.7)" strokeWidth="2.2">
             <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
