@@ -6,10 +6,14 @@ const pool = mysql.createPool({
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'Vairavan_koil',
+  port: parseInt(process.env.DB_PORT || '3306', 10),
   multipleStatements: true,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 10000,
+  connectTimeout: 20000
 });
 
 // Wrapper to mimic 'pg' behavior for easier migration

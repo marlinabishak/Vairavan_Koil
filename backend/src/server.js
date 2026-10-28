@@ -20,8 +20,6 @@ app.use(express.json());
 
 const https = require('https');
 
-app.use('/api', apiRoutes);
-
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.get('/api/my-ip', (req, res) => {
@@ -31,6 +29,16 @@ app.get('/api/my-ip', (req, res) => {
     resp.on('end', () => res.type('json').send(data));
   }).on('error', err => res.status(500).json({ error: err.message }));
 });
+
+app.get('/my-ip', (req, res) => {
+  https.get('https://api.ipify.org?format=json', (resp) => {
+    let data = '';
+    resp.on('data', chunk => data += chunk);
+    resp.on('end', () => res.type('json').send(data));
+  }).on('error', err => res.status(500).json({ error: err.message }));
+});
+
+app.use('/api', apiRoutes);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
