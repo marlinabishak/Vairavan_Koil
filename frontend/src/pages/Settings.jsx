@@ -9,19 +9,46 @@ export default function Settings() {
   const [langTab, setLangTab] = useState('en'); // 'en' or 'ta'
   const [activeTab, setActiveTab] = useState('title');
   const [newValue, setNewValue] = useState('');
+  const [transferAmountInput, setTransferAmountInput] = useState('3500');
+  const [settingSavedMsg, setSettingSavedMsg] = useState('');
+  const [savingSetting, setSavingSetting] = useState(false);
 
   const loadOptions = async () => {
     try {
-      const [data, kTypes] = await Promise.all([
+      const [data, kTypes, sysSettings] = await Promise.all([
         api.getDropdownOptions(),
-        api.getKattalaiTypes()
+        api.getKattalaiTypes(),
+        api.getSettings().catch(() => ({ transfer_base_amount: '3500' }))
       ]);
       setOptions(data);
       setKattalaiTypes(kTypes);
+      if (sysSettings && sysSettings.transfer_base_amount) {
+        setTransferAmountInput(sysSettings.transfer_base_amount);
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveTransferSetting = async (e) => {
+    e.preventDefault();
+    const parsed = parseFloat(transferAmountInput);
+    if (isNaN(parsed) || parsed < 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+    setSavingSetting(true);
+    try {
+      await api.updateSetting('transfer_base_amount', parsed);
+      setSettingSavedMsg('Transfer base fee updated successfully!');
+      setTimeout(() => setSettingSavedMsg(''), 3500);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update transfer setting: ' + err.message);
+    } finally {
+      setSavingSetting(false);
     }
   };
 
@@ -287,6 +314,48 @@ export default function Settings() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Account Transfer Settings Section */}
+        <div className="bg-white rounded-[22px] shadow-sm border border-[#ebdccb] p-5 sm:p-6 mb-6">
+          <div className="flex items-center justify-between gap-3 mb-1">
+            <h2 className="text-lg sm:text-xl font-bold text-[#5c292c]">1-Time Account Transfer Settings</h2>
+            {settingSavedMsg && (
+              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full animate-fade-in">
+                ✓ {settingSavedMsg}
+              </span>
+            )}
+          </div>
+          <p className="text-gray-500 text-xs mb-5">
+            Configure the default base fee for 1-time inheritance transfers from Thiru/Selvan to a son or daughter. 
+            When transferring, the system automatically checks the sponsor's previous payment and charges only the difference (e.g. ₹{transferAmountInput} - Previous Amount).
+          </p>
+
+          <form onSubmit={handleSaveTransferSetting} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-[#faf8f7] p-4 rounded-[18px] border border-[#ebdccb]">
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-[#5c292c] mb-1">Default Base Transfer Fee (₹)</label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₹</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={transferAmountInput}
+                  onChange={(e) => setTransferAmountInput(e.target.value)}
+                  placeholder="e.g. 3500"
+                  className="w-full h-[38px] pl-8 pr-4 rounded-full border border-[#e2d8cb] bg-white text-sm font-bold text-[#5c292c] focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c]"
+                  required
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={savingSetting}
+              className="sm:self-end h-[38px] px-6 rounded-full bg-[#5c292c] hover:bg-[#482022] text-white font-semibold text-xs sm:text-sm transition-all shadow-sm shrink-0 disabled:opacity-50"
+            >
+              {savingSetting ? 'Saving...' : 'Save Transfer Fee'}
+            </button>
+          </form>
         </div>
 
       </div>

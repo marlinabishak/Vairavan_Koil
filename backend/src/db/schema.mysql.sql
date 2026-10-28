@@ -73,6 +73,11 @@ CREATE TABLE bookings (
   let_intimation  VARCHAR(20),
   present         BOOLEAN NOT NULL DEFAULT false,
   status          VARCHAR(20) NOT NULL DEFAULT 'booked',
+  is_transferred  BOOLEAN NOT NULL DEFAULT false,
+  transferred_at  TIMESTAMP NULL,
+  transferred_from_name VARCHAR(160),
+  transferred_from_title VARCHAR(40),
+  transferred_fee_paid DECIMAL(10,2) DEFAULT 0.00,
   created_by      VARCHAR(36),
   created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -217,3 +222,18 @@ CREATE TABLE dropdown_options (
 );
 
 CREATE INDEX idx_dropdown_options_category ON dropdown_options(category);
+
+-- ------------------------------------------------------------
+-- System Settings (Dynamic configuration like transfer_base_amount)
+-- ------------------------------------------------------------
+CREATE TABLE system_settings (
+  setting_key   VARCHAR(60) PRIMARY KEY,
+  setting_value VARCHAR(255) NOT NULL,
+  description   VARCHAR(255),
+  updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+INSERT INTO system_settings (setting_key, setting_value, description)
+VALUES ('transfer_base_amount', '3500', 'Default base amount for 1-time account transfer')
+ON DUPLICATE KEY UPDATE setting_key = setting_key;
+

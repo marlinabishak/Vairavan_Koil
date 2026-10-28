@@ -51,6 +51,7 @@ export const api = {
   getBooking: (id) => request(`/bookings/${id}`),
   createBooking: (data) => request('/bookings', { method: 'POST', body: JSON.stringify(data) }),
   updateBooking: (id, data) => request(`/bookings/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  transferBooking: (id, data) => request(`/bookings/${id}/transfer`, { method: 'POST', body: JSON.stringify(data) }),
   togglePresent: (id, present, user_id, user_name, user_role, target_year) =>
     request(`/bookings/${id}/present`, { method: 'PATCH', body: JSON.stringify({ present, user_id, user_name, user_role, target_year }) }),
   deleteBooking: (id) => request(`/bookings/${id}`, { method: 'DELETE' }),
@@ -88,6 +89,10 @@ export const api = {
   getDropdownOptions: (category) => request(`/dropdown-options${category ? `?category=${category}` : ''}`),
   addDropdownOption: (data) => request('/dropdown-options', { method: 'POST', body: JSON.stringify(data) }),
   deleteDropdownOption: (id) => request(`/dropdown-options/${id}`, { method: 'DELETE' }),
+
+  // System Settings
+  getSettings: () => request('/settings'),
+  updateSetting: (key, value) => request('/settings', { method: 'PUT', body: JSON.stringify({ key, value }) }),
 
   // Auth
   login: (username, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),

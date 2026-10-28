@@ -78,6 +78,25 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
   const [editRequestStatus, setEditRequestStatus] = useState(null); // 'pending', 'approved', 'rejected'
   const [dropdowns, setDropdowns] = useState({ title: [], star: [], place: [], kat_type: ['Lifetime', 'Inheritance'] });
   const [showTamilModal, setShowTamilModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferBaseRate, setTransferBaseRate] = useState(3500);
+  const [transferring, setTransferring] = useState(false);
+  const [transferError, setTransferError] = useState(null);
+  const [transferForm, setTransferForm] = useState({
+    title: 'Selvan',
+    title_ta: '',
+    name: '',
+    name_ta: '',
+    star: '',
+    star_ta: '',
+    place: '',
+    place_ta: '',
+    mobile: '',
+    whatsapp_number: '',
+    email: '',
+    address: '',
+    payment_method: 'cash'
+  });
 
   useEffect(() => {
     api.getDropdownOptions().then(options => {
@@ -89,7 +108,26 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
         kat_type: katTypes.length > 0 ? katTypes : ['Lifetime', 'Inheritance']
       });
     }).catch(console.error);
+
+    api.getSettings().then(s => {
+      if (s && s.transfer_base_amount) {
+        const val = parseFloat(s.transfer_base_amount);
+        if (!isNaN(val)) setTransferBaseRate(val);
+      }
+    }).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    if (existingBooking) {
+      setTransferForm(prev => ({
+        ...prev,
+        place: existingBooking.place || '',
+        mobile: existingBooking.mobile || '',
+        whatsapp_number: existingBooking.whatsapp_number || existingBooking.mobile || '',
+        address: [existingBooking.per_add_1, existingBooking.per_add_2, existingBooking.per_add_3].filter(Boolean).join(', ') || ''
+      }));
+    }
+  }, [existingBooking]);
 
   useEffect(() => {
     if (existingBooking && user?.role === 'user') {
@@ -100,6 +138,56 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
         .catch(err => console.error("Failed to load edit request status", err));
     }
   }, [existingBooking, user]);
+
+  const rawBookingTitle = (existingBooking?.title || '').trim().toLowerCase();
+  const rawBookingTitleTa = (existingBooking?.title_ta || '').trim();
+  const isEligibleForTransfer = 
+    Boolean(existingBooking) &&
+    (rawBookingTitle === 'thiru' || rawBookingTitle === 'selvan' || rawBookingTitleTa === 'திரு' || rawBookingTitleTa === 'செல்வன்') && 
+    !existingBooking?.is_transferred && 
+    !existingBooking?.transferred_at;
+
+  const isAlreadyTransferred = Boolean(existingBooking?.is_transferred || existingBooking?.transferred_at);
+  const oldPaidAmount = parseFloat(existingBooking?.amount || 0);
+  const transferDifferenceAmount = Math.max(0, transferBaseRate - oldPaidAmount);
+
+  async function handleConfirmTransfer() {
+    if (!transferForm.name.trim()) {
+      setTransferError('Please enter the name of the son or daughter');
+      return;
+    }
+    setTransferring(true);
+    setTransferError(null);
+    try {
+      const payload = {
+        title: transferForm.title,
+        title_ta: transferForm.title_ta || '',
+        name: transferForm.name.trim(),
+        name_ta: transferForm.name_ta ? transferForm.name_ta.trim() : '',
+        star: transferForm.star,
+        star_ta: transferForm.star_ta || '',
+        place: transferForm.place,
+        place_ta: transferForm.place_ta || '',
+        mobile: transferForm.mobile,
+        whatsapp_number: transferForm.whatsapp_number || transferForm.mobile,
+        email: transferForm.email,
+        per_add_1: transferForm.address,
+        comm_add_1: transferForm.address,
+        payment_method: transferForm.payment_method,
+        user_id: user?.id,
+        user_name: user?.name
+      };
+
+      const res = await api.transferBooking(existingBooking.id, payload);
+      setTransferring(false);
+      setShowTransferModal(false);
+      if (onSaved) onSaved(res.booking);
+      onClose();
+    } catch (err) {
+      setTransferError(err.message || 'Failed to complete transfer');
+      setTransferring(false);
+    }
+  }
 
   const isUnlocked = editRequestStatus === 'approved';
   const isLockedForUser = user?.role === 'user' && !isUnlocked;
@@ -368,24 +456,42 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
           className="relative shadow-[0_20px_60px_-15px_rgba(70,40,20,0.25)] flex flex-col p-4 sm:p-6 bg-[#f7f1e5] border border-[#ebdccb] rounded-[24px] sm:rounded-[28px] max-w-[620px] w-full my-auto transition-all animate-fade-in max-h-[92vh] overflow-y-auto"
           style={{ maxWidth: '620px', width: '100%' }}
         >
-          <div className="w-full flex flex-col gap-2.5">
-          
-          {/* Header */}
-          <div className="flex items-center justify-between px-1 pb-0.5">
-            <h3 className="text-[17px] sm:text-[18px] font-bold text-[#5c292c] font-barlow tracking-wide">
-              {existingBooking ? 'Edit Booking' : 'New Booking'}
-            </h3>
-            <button
-              onClick={onClose}
-              type="button"
-              className="w-7 h-7 rounded-full flex items-center justify-center text-[#8c8075] hover:text-[#5c292c] hover:bg-black/5 transition-colors"
-              title="Close"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+          {!showTransferModal ? (
+            <div className="w-full flex flex-col gap-2.5">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between px-1 pb-0.5">
+              <h3 className="text-[17px] sm:text-[18px] font-bold text-[#5c292c] font-barlow tracking-wide">
+                {existingBooking ? 'Edit Booking' : 'New Booking'}
+              </h3>
+              <button
+                onClick={onClose}
+                type="button"
+                className="w-7 h-7 rounded-full flex items-center justify-center text-[#8c8075] hover:text-[#5c292c] hover:bg-black/5 transition-colors"
+                title="Close"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Transferred Notice if already transferred */}
+            {isAlreadyTransferred && (
+              <div className="bg-[#f0f9ff] border border-[#bae6fd] rounded-xl px-3 py-2 flex items-center gap-2.5 text-xs text-[#0369a1] animate-fade-in">
+                <svg className="w-4 h-4 shrink-0 text-[#0284c7]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="flex-1">
+                  <span className="font-bold">1-Time Account Transfer Completed:</span>
+                  <span className="text-[11.5px] text-[#0c4a6e] ml-1">
+                    Transferred on {existingBooking.transferred_at ? new Date(existingBooking.transferred_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Record'}
+                    {existingBooking.transferred_from_name ? ` (from ${existingBooking.transferred_from_title || ''} ${existingBooking.transferred_from_name})` : ''}.
+                    1-time limit reached.
+                  </span>
+                </div>
+              </div>
+            )}
 
           {/* Mobile View: Dedicated touch-optimized layout (< sm screens, zero overflow) */}
           <div className="sm:hidden flex flex-col gap-2.5">
@@ -863,27 +969,234 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
             </p>
           )}
 
-          {/* Action Buttons: Cancel & Register */}
-          <div className="flex items-center justify-center gap-4 mt-3 pt-1 pb-2 sm:pb-0">
+          {/* Action Buttons: Cancel, Transfer (if eligible), & Register */}
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-3 pt-1 pb-2 sm:pb-0">
             <button
               type="button"
               onClick={onClose}
-              className="flex items-center justify-center font-barlow font-medium text-[15px] bg-white text-[#5c292c] border-2 border-[#5c292c] hover:bg-[#5c292c]/5 transition-all px-8 h-[38px] rounded-full shadow-sm"
+              className="flex items-center justify-center font-barlow font-medium text-[15px] bg-white text-[#5c292c] border-2 border-[#5c292c] hover:bg-[#5c292c]/5 transition-all px-7 h-[38px] rounded-full shadow-sm"
             >
               Cancel
             </button>
+            {isEligibleForTransfer && (
+              <button
+                type="button"
+                onClick={() => setShowTransferModal(true)}
+                className="flex items-center justify-center gap-1.5 font-barlow font-semibold text-[14px] bg-[#fdf2e9] text-[#c2410c] border border-[#fed7aa] hover:bg-[#ffedd5] transition-all px-5 h-[38px] rounded-full shadow-sm cursor-pointer active:scale-[0.99]"
+                title="1-time transfer of this account to son or daughter"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                Account Transfer
+              </button>
+            )}
             <button
               type="button"
               onClick={handlePayNow}
               disabled={saving}
-              className="flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-9 h-[38px] rounded-full shadow-sm bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow cursor-pointer active:scale-[0.99]"
+              className="flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-8 h-[38px] rounded-full shadow-sm bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow cursor-pointer active:scale-[0.99]"
               title={isFormValid ? "Proceed" : "Please fill all required fields to proceed"}
             >
               {saving ? 'Saving...' : (existingBooking ? (isUnlocked ? 'Update All Details' : 'Update Allowed Details') : 'Register')}
             </button>
           </div>
         </div>
-      </div>
+        ) : (
+          /* Transfer Modal View (Inline) */
+          <div className="w-full flex flex-col gap-3 font-barlow animate-fade-in">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-[#ebdccb]/80 pb-2">
+              <div>
+                <h3 className="text-[17px] sm:text-[18px] font-bold text-[#5c292c] tracking-wide flex items-center gap-2">
+                  <span>1-Time Account Transfer</span>
+                  <span className="text-[10px] font-bold bg-[#c2410c] text-white px-2 py-0.5 rounded-full uppercase tracking-wider">Son / Daughter</span>
+                </h3>
+                <p className="text-xs text-[#7c6f64] mt-0.5">
+                  Transferring sponsorship from <strong className="text-[#5c292c]">{existingBooking?.title} {existingBooking?.name}</strong> to child.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowTransferModal(false)}
+                type="button"
+                className="w-7 h-7 rounded-full flex items-center justify-center text-[#8c8075] hover:text-[#5c292c] hover:bg-black/5 transition-colors"
+                title="Back to Edit"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Dynamic Calculation Card */}
+            <div className="bg-[#fcfaf7] border border-[#e6d8c7] rounded-[18px] p-3 shadow-xs">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-gray-500 mb-2 border-b border-[#ebdccb]/60 pb-1.5">
+                <span>Dynamic Fee Calculation</span>
+                <span className="text-[10px] bg-[#5c292c]/10 text-[#5c292c] px-2 py-0.5 rounded-full font-bold">1-Time Inheritance</span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="bg-white p-2 rounded-xl border border-[#e8ded1]">
+                  <span className="block text-[10.5px] text-gray-500 font-medium">Standard Base Fee</span>
+                  <span className="text-sm font-bold text-[#5c292c]">₹{transferBaseRate.toLocaleString()}</span>
+                </div>
+                <div className="bg-white p-2 rounded-xl border border-[#e8ded1]">
+                  <span className="block text-[10.5px] text-gray-500 font-medium">Previous Paid</span>
+                  <span className="text-sm font-bold text-gray-600">₹{oldPaidAmount.toLocaleString()}</span>
+                </div>
+                <div className="bg-[#ecfdf5] p-2 rounded-xl border border-[#a7f3d0]">
+                  <span className="block text-[10.5px] text-[#047857] font-bold">Amount to Pay</span>
+                  <span className="text-sm font-extrabold text-[#065f46]">
+                    ₹{transferDifferenceAmount.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Form Inputs for Child */}
+            <div className="flex flex-col gap-2.5">
+              {/* Row: Title & Name */}
+              <div className="flex gap-2">
+                <div className="w-[105px] shrink-0">
+                  <label className="block text-[11px] font-bold text-[#5c292c] mb-1">Title</label>
+                  <select
+                    className={selectClass}
+                    value={transferForm.title}
+                    onChange={(e) => setTransferForm(prev => ({ ...prev, title: e.target.value }))}
+                  >
+                    <option value="Selvan">Selvan</option>
+                    <option value="Thiru">Thiru</option>
+                    <option value="Selvi">Selvi</option>
+                    <option value="Thirumathi">Thirumathi</option>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[11px] font-bold text-[#5c292c] mb-1">Child's Full Name (Son / Daughter) *</label>
+                  <input
+                    className={inputClass}
+                    placeholder="Full Name"
+                    value={transferForm.name}
+                    onChange={(e) => setTransferForm(prev => ({ ...prev, name: e.target.value }))}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Row: Star & Place */}
+              <div className="flex gap-2">
+                <div className="w-1/2">
+                  <label className="block text-[11px] font-bold text-[#5c292c] mb-1">Star (நட்சத்திரம்)</label>
+                  <select
+                    className={selectClass}
+                    value={transferForm.star}
+                    onChange={(e) => setTransferForm(prev => ({ ...prev, star: e.target.value }))}
+                  >
+                    <option value="">Select Star</option>
+                    {dropdowns.star.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+                <div className="w-1/2">
+                  <label className="block text-[11px] font-bold text-[#5c292c] mb-1">Place (ஊர்)</label>
+                  <select
+                    className={selectClass}
+                    value={transferForm.place}
+                    onChange={(e) => setTransferForm(prev => ({ ...prev, place: e.target.value }))}
+                  >
+                    <option value="">Select Place</option>
+                    {dropdowns.place.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Row: Mobile & WhatsApp */}
+              <div className="flex gap-2">
+                <div className="w-1/2">
+                  <label className="block text-[11px] font-bold text-[#5c292c] mb-1">Mobile Number</label>
+                  <input
+                    className={inputClass}
+                    placeholder="Mobile Number"
+                    value={transferForm.mobile}
+                    onChange={(e) => setTransferForm(prev => ({ ...prev, mobile: e.target.value }))}
+                  />
+                </div>
+                <div className="w-1/2">
+                  <label className="block text-[11px] font-bold text-[#5c292c] mb-1">WhatsApp Number</label>
+                  <input
+                    className={inputClass}
+                    placeholder="WhatsApp Number"
+                    value={transferForm.whatsapp_number}
+                    onChange={(e) => setTransferForm(prev => ({ ...prev, whatsapp_number: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Row: Email */}
+              <div>
+                <label className="block text-[11px] font-bold text-[#5c292c] mb-1">Email Address</label>
+                <input
+                  type="email"
+                  className={inputClass}
+                  placeholder="Email Address"
+                  value={transferForm.email}
+                  onChange={(e) => setTransferForm(prev => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
+
+              {/* Row: Address */}
+              <div>
+                <label className="block text-[11px] font-bold text-[#5c292c] mb-1">Address</label>
+                <input
+                  className={inputClass}
+                  placeholder="Permanent / Communication Address"
+                  value={transferForm.address}
+                  onChange={(e) => setTransferForm(prev => ({ ...prev, address: e.target.value }))}
+                />
+              </div>
+
+              {/* Row: Payment Method */}
+              <div className="bg-[#faf8f7] p-2.5 rounded-xl border border-[#ebdccb] flex items-center justify-between">
+                <span className="text-xs font-bold text-[#5c292c]">Payment Mode (for ₹{transferDifferenceAmount}):</span>
+                <select
+                  value={transferForm.payment_method}
+                  onChange={(e) => setTransferForm(prev => ({ ...prev, payment_method: e.target.value }))}
+                  className="h-[32px] px-3 rounded-lg border border-[#e2d8cb] bg-white text-xs font-bold text-gray-800 focus:outline-none"
+                >
+                  <option value="cash">Cash</option>
+                  <option value="upi">GPay / UPI</option>
+                  <option value="bank_transfer">Bank Transfer / NEFT</option>
+                  <option value="cheque">Cheque</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Error message */}
+            {transferError && (
+              <div className="text-red-600 text-xs font-semibold bg-red-50 p-2 rounded-lg border border-red-200 text-center">
+                {transferError}
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div className="flex items-center justify-center gap-3 pt-2 border-t border-[#ebdccb]/60">
+              <button
+                type="button"
+                onClick={() => setShowTransferModal(false)}
+                className="px-6 h-[38px] rounded-full bg-white text-[#5c292c] border-2 border-[#5c292c] hover:bg-[#5c292c]/5 text-[14px] font-medium transition-all shadow-sm"
+              >
+                Back to Edit
+              </button>
+              <button
+                type="button"
+                disabled={transferring || !transferForm.name.trim()}
+                onClick={handleConfirmTransfer}
+                className="px-7 h-[38px] rounded-full bg-[#c2410c] hover:bg-[#9a3412] text-white text-[14px] font-bold transition-all shadow-sm hover:shadow flex items-center gap-2 disabled:opacity-50 cursor-pointer active:scale-[0.99]"
+              >
+                {transferring ? 'Transferring...' : `Confirm Transfer (₹${transferDifferenceAmount})`}
+              </button>
+            </div>
+          </div>
+        )}
+        </div>
       ) : (
         <TamilDetailsModal 
           isOpen={showTamilModal} 

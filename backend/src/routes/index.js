@@ -12,6 +12,7 @@ const history = require('../controllers/historyController');
 const requestsController = require('../controllers/requestsController');
 const dropdownController = require('../controllers/dropdownController');
 const usersController = require('../controllers/usersController');
+const settingsController = require('../controllers/settingsController');
 const whatsappRoutes = require('./whatsappRoutes');
 const authenticateToken = require('../middleware/authMiddleware');
 
@@ -79,6 +80,7 @@ router.get('/diagnose', async (req, res) => {
 // Public routes for Signup page
 router.get('/kattalai-types', kattalaiTypes.listKattalaiTypes);
 router.get('/dropdown-options', dropdownController.getOptions);
+router.get('/settings', settingsController.getSettings);
 router.get('/bookings', bookings.listBookings); // Needed to check slot availability
 router.post('/bookings', bookings.createBooking); // Needed for public registration
 
@@ -119,10 +121,14 @@ router.put('/kattalai-types/:id', kattalaiTypes.updateKattalaiType);
 // Attendance History for Devotees
 router.get('/my-attendance', bookings.getMyAttendance);
 
+// System Settings
+router.put('/settings', settingsController.updateSetting);
+
 // Bookings (sponsors / pills)
 router.get('/bookings/export', bookings.exportBookings);
 router.get('/bookings/:id', bookings.getBooking);
 router.patch('/bookings/:id', bookings.updateBooking);
+router.post('/bookings/:id/transfer', bookings.transferBooking);
 router.patch('/bookings/:id/present', bookings.togglePresent);
 router.delete('/bookings/:id', bookings.deleteBooking);
 
