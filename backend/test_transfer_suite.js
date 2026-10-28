@@ -2,10 +2,10 @@ const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 
 // Configure environment for Aiven MySQL without committing raw secrets
-process.env.DB_HOST = process.env.DB_HOST || 'mysql-1affff53-projectvairavankoil.h.aivencloud.com';
-process.env.DB_PORT = process.env.DB_PORT || '16613';
-process.env.DB_USER = process.env.DB_USER || 'avnadmin';
-process.env.DB_NAME = process.env.DB_NAME || 'defaultdb';
+process.env.DB_HOST = 'mysql-1affff53-projectvairavankoil.h.aivencloud.com';
+process.env.DB_PORT = '16613';
+process.env.DB_USER = 'avnadmin';
+process.env.DB_NAME = 'defaultdb';
 process.env.DB_SSL = 'true';
 
 const pool = require('./src/db/pool');
