@@ -1,18 +1,21 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
+const isAiven = process.env.DB_HOST && process.env.DB_HOST.includes('aivencloud.com');
+const defaultPort = isAiven ? '16613' : '3306';
+
 const useSsl = 
   process.env.DB_SSL === 'true' || 
   process.env.DB_SSL === 'REQUIRED' || 
   process.env.DB_PORT === '16613' || 
-  (process.env.DB_HOST && process.env.DB_HOST.includes('aivencloud.com'));
+  isAiven;
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'Vairavan_koil',
-  port: parseInt(process.env.DB_PORT || '3306', 10),
+  port: parseInt(process.env.DB_PORT || defaultPort, 10),
   ssl: useSsl ? { rejectUnauthorized: false } : undefined,
   multipleStatements: true,
   waitForConnections: true,
