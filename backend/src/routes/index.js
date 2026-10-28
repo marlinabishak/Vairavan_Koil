@@ -25,6 +25,15 @@ const loginLimiter = rateLimit({
 // PUBLIC ROUTES
 router.post('/auth/login', loginLimiter, auth.login);
 
+router.get('/my-ip', (req, res) => {
+  const https = require('https');
+  https.get('https://api.ipify.org?format=json', (resp) => {
+    let data = '';
+    resp.on('data', chunk => data += chunk);
+    resp.on('end', () => res.type('json').send(data));
+  }).on('error', err => res.status(500).json({ error: err.message }));
+});
+
 // Public routes for Signup page
 router.get('/kattalai-types', kattalaiTypes.listKattalaiTypes);
 router.get('/dropdown-options', dropdownController.getOptions);
