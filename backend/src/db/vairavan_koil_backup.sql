@@ -23,7 +23,7 @@ DROP TABLE IF EXISTS `bookings`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `bookings` (
-  `id` varchar(36) NOT NULL DEFAULT uuid(),
+  `id` varchar(36) NOT NULL DEFAULT (uuid()),
   `kattalai_type_id` varchar(36) NOT NULL,
   `kattalai_date` int(11) DEFAULT NULL,
   `kattalai_month` int(11) DEFAULT NULL,
@@ -83,7 +83,7 @@ DROP TABLE IF EXISTS `dropdown_options`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `dropdown_options` (
-  `id` varchar(36) NOT NULL DEFAULT uuid(),
+  `id` varchar(36) NOT NULL DEFAULT (uuid()),
   `category` varchar(30) NOT NULL,
   `value` varchar(160) NOT NULL,
   `display_order` int(11) NOT NULL DEFAULT 0,
@@ -111,7 +111,7 @@ DROP TABLE IF EXISTS `edit_requests`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `edit_requests` (
-  `id` varchar(36) NOT NULL DEFAULT uuid(),
+  `id` varchar(36) NOT NULL DEFAULT (uuid()),
   `booking_id` varchar(36) NOT NULL,
   `status` varchar(20) DEFAULT 'pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -140,7 +140,7 @@ DROP TABLE IF EXISTS `history_logs`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `history_logs` (
-  `id` varchar(36) NOT NULL DEFAULT uuid(),
+  `id` varchar(36) NOT NULL DEFAULT (uuid()),
   `user_id` varchar(36) DEFAULT NULL,
   `action` varchar(120) NOT NULL,
   `details` text NOT NULL,
@@ -173,7 +173,7 @@ DROP TABLE IF EXISTS `kattalai_types`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `kattalai_types` (
-  `id` varchar(36) NOT NULL DEFAULT uuid(),
+  `id` varchar(36) NOT NULL DEFAULT (uuid()),
   `name` varchar(120) NOT NULL,
   `name_ta` varchar(160) DEFAULT NULL,
   `color_key` varchar(30) NOT NULL,
@@ -244,7 +244,7 @@ DROP TABLE IF EXISTS `payments`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `payments` (
-  `id` varchar(36) NOT NULL DEFAULT uuid(),
+  `id` varchar(36) NOT NULL DEFAULT (uuid()),
   `booking_id` varchar(36) NOT NULL,
   `amount` decimal(10,2) NOT NULL,
   `method` varchar(30) DEFAULT 'cash',
@@ -276,7 +276,7 @@ DROP TABLE IF EXISTS `todo_items`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `todo_items` (
-  `id` varchar(36) NOT NULL DEFAULT uuid(),
+  `id` varchar(36) NOT NULL DEFAULT (uuid()),
   `todo_list_id` varchar(36) NOT NULL,
   `booking_id` varchar(36) DEFAULT NULL,
   `name` varchar(160) NOT NULL,
@@ -308,7 +308,7 @@ DROP TABLE IF EXISTS `todo_lists`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `todo_lists` (
-  `id` varchar(36) NOT NULL DEFAULT uuid(),
+  `id` varchar(36) NOT NULL DEFAULT (uuid()),
   `title` varchar(120) NOT NULL,
   `display_order` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -334,7 +334,7 @@ DROP TABLE IF EXISTS `users`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `users` (
-  `id` varchar(36) NOT NULL DEFAULT uuid(),
+  `id` varchar(36) NOT NULL DEFAULT (uuid()),
   `name` varchar(120) NOT NULL,
   `email` varchar(160) NOT NULL,
   `password_hash` text NOT NULL,
@@ -363,7 +363,7 @@ DROP TABLE IF EXISTS `whatsapp_send_history`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `whatsapp_send_history` (
-  `id` varchar(36) NOT NULL DEFAULT uuid(),
+  `id` varchar(36) NOT NULL DEFAULT (uuid()),
   `lang` varchar(20) NOT NULL,
   `target_date` varchar(60) NOT NULL,
   `total` int(11) DEFAULT 0,
