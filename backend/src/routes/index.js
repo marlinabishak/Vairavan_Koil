@@ -34,6 +34,48 @@ router.get('/my-ip', (req, res) => {
   }).on('error', err => res.status(500).json({ error: err.message }));
 });
 
+router.get('/diagnose', async (req, res) => {
+  const net = require('net');
+  const pool = require('../db/pool');
+  const host = (process.env.DB_HOST || '').trim();
+  const port = parseInt(process.env.DB_PORT || '3306', 10);
+
+  const testTcp = (targetHost) => new Promise((resolve) => {
+    const start = Date.now();
+    const socket = net.createConnection({ host: targetHost, port, timeout: 5000 });
+    socket.on('connect', () => {
+      const ms = Date.now() - start;
+      socket.destroy();
+      resolve({ success: true, ms: `${ms}ms` });
+    });
+    socket.on('timeout', () => {
+      socket.destroy();
+      resolve({ success: false, error: 'TCP Socket Timeout (5s)' });
+    });
+    socket.on('error', (err) => {
+      resolve({ success: false, error: err.message, code: err.code });
+    });
+  });
+
+  const tcpPingHost = await testTcp(host);
+  const tcpPingDomain = await testTcp('srv443.hstgr.io');
+
+  let dbResult = null;
+  try {
+    const rows = await pool.query('SELECT 1 as test');
+    dbResult = { success: true, rows };
+  } catch (err) {
+    dbResult = { success: false, error: err.message, code: err.code };
+  }
+
+  res.json({
+    env: { host, port, user: process.env.DB_USER, database: process.env.DB_NAME },
+    tcpToDbHost: tcpPingHost,
+    tcpToDomain: tcpPingDomain,
+    queryResult: dbResult
+  });
+});
+
 // Public routes for Signup page
 router.get('/kattalai-types', kattalaiTypes.listKattalaiTypes);
 router.get('/dropdown-options', dropdownController.getOptions);
