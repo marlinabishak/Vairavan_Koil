@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import PowerUsersSection from '../components/PowerUsersSection';
+import DevoteeProfileView from '../components/DevoteeProfileView';
 
 const ROLE_INFO = {
   superadmin: {
@@ -42,6 +44,7 @@ export default function Profiles() {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState('staff'); // 'staff' | 'power_users'
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -58,13 +61,14 @@ export default function Profiles() {
 
   // Access control
   useEffect(() => {
-    if (currentUser && currentUser.role !== 'superadmin') {
+    if (currentUser && currentUser.role !== 'superadmin' && currentUser.role !== 'user') {
       alert('Access restricted. Only Super Admin can manage staff profiles & roles.');
       navigate('/dashboard');
     }
   }, [currentUser, navigate]);
 
   const loadUsers = async () => {
+    if (currentUser?.role === 'user') return;
     try {
       setLoading(true);
       setError(null);
@@ -79,8 +83,14 @@ export default function Profiles() {
   };
 
   useEffect(() => {
-    loadUsers();
-  }, []);
+    if (currentUser?.role !== 'user') {
+      loadUsers();
+    }
+  }, [currentUser]);
+
+  if (currentUser?.role === 'user') {
+    return <DevoteeProfileView />;
+  }
 
   const openCreateModal = () => {
     setEditingUser(null);
@@ -199,7 +209,7 @@ export default function Profiles() {
       <div className="max-w-5xl mx-auto">
         
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <Link
@@ -213,20 +223,60 @@ export default function Profiles() {
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[#5c292c] tracking-tight">
-              Staff Profiles & Roles
+              {activeTab === 'staff' ? 'Staff Profiles & Roles' : 'Power Users'}
             </h1>
           </div>
 
+          {activeTab === 'staff' && (
+            <button
+              onClick={openCreateModal}
+              className="flex items-center justify-center gap-2 bg-[#5c292c] hover:bg-[#482022] text-white px-5 py-2.5 rounded-full font-semibold text-sm shadow-md hover:shadow-lg transition-all self-start sm:self-auto shrink-0"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Staff Profile
+            </button>
+          )}
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="flex items-center gap-2 mb-6 border-b border-[#ebdccb] pb-3 overflow-x-auto">
           <button
-            onClick={openCreateModal}
-            className="flex items-center justify-center gap-2 bg-[#5c292c] hover:bg-[#482022] text-white px-5 py-2.5 rounded-full font-semibold text-sm shadow-md hover:shadow-lg transition-all self-start sm:self-auto shrink-0"
+            type="button"
+            onClick={() => setActiveTab('staff')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'staff'
+                ? 'bg-[#5c292c] text-white shadow-md'
+                : 'bg-white text-gray-700 border border-[#ebdccb] hover:bg-[#faf6f0]'
+            }`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
-            Add Staff Profile
+            Staff Profiles & Roles ({users.length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('power_users')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'power_users'
+                ? 'bg-[#5c292c] text-white shadow-md'
+                : 'bg-white text-gray-700 border border-[#ebdccb] hover:bg-[#faf6f0]'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            Power Users (5 Roles)
           </button>
         </div>
+
+        {activeTab === 'power_users' ? (
+          <PowerUsersSection />
+        ) : (
+          <>
 
         {/* Role Statistics Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
@@ -485,6 +535,8 @@ export default function Profiles() {
               </table>
             </div>
           </div>
+        )}
+          </>
         )}
 
       </div>

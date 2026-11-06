@@ -13,13 +13,17 @@ const requestsController = require('../controllers/requestsController');
 const dropdownController = require('../controllers/dropdownController');
 const usersController = require('../controllers/usersController');
 const settingsController = require('../controllers/settingsController');
+const powerUsersController = require('../controllers/powerUsersController');
+const kattalaiDeletionController = require('../controllers/kattalaiDeletionController');
+const bugReportsController = require('../controllers/bugReportsController');
 const whatsappRoutes = require('./whatsappRoutes');
 const authenticateToken = require('../middleware/authMiddleware');
 
 // Rate limiting for auth routes to prevent brute force
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 10 login requests per `window` (here, per 15 minutes)
+  max: process.env.NODE_ENV === 'test' ? 1000 : 100, // Reasonable threshold preventing accidental IP lockouts
+  skip: (req) => process.env.NODE_ENV === 'test' || req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1',
   message: { error: 'Too many login attempts from this IP, please try again after 15 minutes' }
 });
 
@@ -77,19 +81,53 @@ router.get('/diagnose', async (req, res) => {
   });
 });
 
-// Public routes for Signup page
+// Optional authentication middleware to identify devotees vs staff vs public
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_vairavan_kovil_2026';
+const optionalAuth = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return next();
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (!err && user) req.user = user;
+    next();
+  });
+};
+
+// Public & semi-public routes
 router.get('/kattalai-types', kattalaiTypes.listKattalaiTypes);
 router.get('/dropdown-options', dropdownController.getOptions);
 router.get('/settings', settingsController.getSettings);
-router.get('/bookings', bookings.listBookings); // Needed to check slot availability
+router.get('/bookings/search', optionalAuth, bookings.searchBookings);
+router.get('/bookings/code/:code', optionalAuth, bookings.getBookingByCode);
+router.get('/bookings', optionalAuth, bookings.listBookings);
+router.get('/todos', todos.listTodos); // Needed to render dashboard todo structure
 router.post('/bookings', bookings.createBooking); // Needed for public registration
 
 // Razorpay endpoints must be public so devotees can pay during signup
 router.post('/payments/razorpay/create-order', payments.createRazorpayOrder);
 router.post('/payments/razorpay/verify', payments.verifyRazorpaySignature);
 
+// Panchangam read is public (Tamil calendar almanac)
+router.get('/panchangam/:date', panchangam.getPanchangam);
+
+router.get('/history', optionalAuth, history.listHistory);
+router.post('/history', optionalAuth, history.createHistoryLog);
+router.get('/history/print-status', optionalAuth, history.getPrintStatus);
+router.post('/history/print-log', optionalAuth, history.logPrintRecord);
+
+// Bug & Issue Reporting (Available to all roles)
+router.post('/bug-reports', optionalAuth, bugReportsController.upload.array('screenshots', 5), bugReportsController.createBugReport);
+router.get('/bug-reports', optionalAuth, bugReportsController.listBugReports);
+
 // PROTECTED ROUTES (Require JWT)
 router.use(authenticateToken);
+
+// Change password for logged in user (Devotee or Staff)
+router.post('/auth/change-password', auth.changePassword);
+
+// Bug status update (Staff only)
+router.patch('/bug-reports/:id/status', bugReportsController.updateBugReportStatus);
 
 router.use('/whatsapp', whatsappRoutes);
 
@@ -98,6 +136,14 @@ router.get('/users', usersController.listUsers);
 router.post('/users', usersController.createUser);
 router.patch('/users/:id', usersController.updateUser);
 router.delete('/users/:id', usersController.deleteUser);
+
+// Power Users Management (Superadmin only)
+router.get('/power-users', powerUsersController.getPowerUsers);
+router.put('/power-users/:role_key', powerUsersController.updatePowerUser);
+
+// Kattalai Deletion via 3-Party WhatsApp OTP (Superadmin only)
+router.post('/kattalai-deletion/initiate', kattalaiDeletionController.initiateDeletion);
+router.post('/kattalai-deletion/verify-and-delete', kattalaiDeletionController.verifyAndDelete);
 
 // Dropdown Options
 router.get('/dropdown-options', dropdownController.getOptions);
@@ -109,10 +155,6 @@ router.get('/edit-requests', requestsController.getRequests);
 router.get('/edit-requests/booking/:booking_id', requestsController.getBookingRequest);
 router.post('/edit-requests', requestsController.createRequest);
 router.patch('/edit-requests/:id/status', requestsController.updateRequestStatus);
-
-// History
-router.get('/history', history.listHistory);
-router.post('/history', history.createHistoryLog);
 
 // Kattalai types (the columns on the dashboard)
 router.post('/kattalai-types', kattalaiTypes.createKattalaiType);
@@ -138,9 +180,9 @@ router.post('/todos/:listId/items', todos.addTodoItem);
 router.patch('/todos/items/:itemId', todos.updateTodoItem);
 router.delete('/todos/items/:itemId', todos.deleteTodoItem);
 
-// Panchangam
-router.get('/panchangam/:date', panchangam.getPanchangam);
+// Panchangam (admin mutations)
 router.put('/panchangam/:date', panchangam.upsertPanchangam);
+router.post('/panchangam/upload-csv', panchangam.uploadCsv);
 
 // Payments
 router.post('/payments', payments.createPayment);

@@ -11,6 +11,7 @@ import Settings from './pages/Settings.jsx';
 import MyHistory from './pages/MyHistory.jsx';
 import WhatsAppDashboard from './pages/WhatsAppDashboard.jsx';
 import Profiles from './pages/Profiles.jsx';
+import BugReportsPage from './pages/BugReportsPage.jsx';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -77,6 +78,7 @@ export default function App() {
             <Route path="/users" element={<Profiles />} />
             <Route path="/my-history" element={<MyHistory />} />
             <Route path="/whatsapp" element={<WhatsAppDashboard />} />
+            <Route path="/bug-reports" element={<BugReportsPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

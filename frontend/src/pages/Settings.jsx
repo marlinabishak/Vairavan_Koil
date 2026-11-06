@@ -141,29 +141,51 @@ export default function Settings() {
         </div>
 
         {/* Staff Profiles & Roles Callout */}
-        <div className="bg-[#f7f1e5] border border-[#ebdccb] rounded-[20px] p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#5c292c] text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <div className="bg-[#f7f1e5] border border-[#ebdccb] rounded-[20px] p-4 flex flex-col justify-between gap-3 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#5c292c] text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-[#5c292c] text-sm">Staff Profiles & Roles</h3>
+                <p className="text-xs text-gray-600">Manage staff login accounts and operational role assignments.</p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-[#5c292c] text-sm">Staff Profiles & Roles</h3>
-              <p className="text-xs text-gray-600">Manage staff login accounts and operational role assignments.</p>
-            </div>
+            <Link
+              to="/profiles"
+              className="bg-[#5c292c] hover:bg-[#482022] text-white px-4 py-2 rounded-full text-xs font-bold transition-all shadow-sm shrink-0 whitespace-nowrap self-start"
+            >
+              Manage Profiles →
+            </Link>
           </div>
-          <Link
-            to="/profiles"
-            className="bg-[#5c292c] hover:bg-[#482022] text-white px-4 py-2 rounded-full text-xs font-bold transition-all shadow-sm shrink-0 whitespace-nowrap self-start sm:self-auto"
-          >
-            Manage Profiles →
-          </Link>
+
+          <div className="bg-[#f7f1e5] border border-[#ebdccb] rounded-[20px] p-4 flex flex-col justify-between gap-3 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#5c292c] text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-[#5c292c] text-sm">Bug & Issue Reports</h3>
+                <p className="text-xs text-gray-600">View and update bugs and feedback submitted across all roles.</p>
+              </div>
+            </div>
+            <Link
+              to="/bug-reports"
+              className="bg-[#5c292c] hover:bg-[#482022] text-white px-4 py-2 rounded-full text-xs font-bold transition-all shadow-sm shrink-0 whitespace-nowrap self-start"
+            >
+              View Bug Reports →
+            </Link>
+          </div>
         </div>
 
         {/* Account Transfer Settings Section (Prominently placed at the top) */}
         <div className="bg-white rounded-[22px] shadow-sm border border-[#ebdccb] p-5 sm:p-6 mb-6">
-          <div className="flex items-center justify-between gap-3 mb-1">
+          <div className="flex items-center justify-between gap-3 mb-4">
             <h2 className="text-lg sm:text-xl font-bold text-[#5c292c]">1-Time Account Transfer Settings</h2>
             {settingSavedMsg && (
               <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full animate-fade-in">
@@ -171,10 +193,6 @@ export default function Settings() {
               </span>
             )}
           </div>
-          <p className="text-gray-500 text-xs mb-5">
-            Configure the default base fee for 1-time inheritance transfers from Thiru/Selvan to a son or daughter. 
-            When transferring, the system automatically checks the sponsor's previous payment and charges only the difference (e.g. ₹{transferAmountInput} - Previous Amount).
-          </p>
 
           <form onSubmit={handleSaveTransferSetting} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-[#faf8f7] p-4 rounded-[18px] border border-[#ebdccb]">
             <div className="flex-1">
@@ -209,7 +227,6 @@ export default function Settings() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 border-b border-[#ebdccb]/60 pb-3">
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-[#5c292c]">Manage Dropdown Options</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Customize English and Tamil dropdown choices across the registration forms.</p>
             </div>
 
             {/* Language Switcher */}
@@ -319,8 +336,7 @@ export default function Settings() {
 
         {/* Kattalai Slot Capacities Section */}
         <div className="bg-white rounded-[22px] shadow-sm border border-[#ebdccb] p-5 sm:p-6 mb-6">
-          <h2 className="text-lg sm:text-xl font-bold text-[#5c292c] mb-1">Manage Kattalai Slot Capacities</h2>
-          <p className="text-gray-500 text-xs mb-5">Set maximum daily slots for each Kattalai type. Historical bookings beyond this number remain visible.</p>
+          <h2 className="text-lg sm:text-xl font-bold text-[#5c292c] mb-4">Manage Kattalai Slot Capacities</h2>
           
           {loading ? (
             <div className="text-center text-gray-500 py-6 text-sm">Loading capacities...</div>

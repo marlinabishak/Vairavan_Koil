@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../api/client.js';
 import TamilDetailsModal from '../components/TamilDetailsModal.jsx';
 import Combobox from '../components/Combobox.jsx';
+import { COUNTRY_CODES } from '../components/BookingModal.jsx';
 
 function getDayOfYear(dateString) {
   if (!dateString) return 0;
@@ -54,7 +55,7 @@ export default function Signup() {
     title: '', name: '', star: '', place: '',
     permanent_address: '', communication_address: '',
     mobile: '', whatsapp_number: '', code: '',
-    whatsapp_same_as_mobile: false, email: '',
+    email: '',
     regn_date: new Date().toISOString().slice(0, 10),
     kattalai_type_id: '', kat_type: 'Lifetime', country_code: '91'
   });
@@ -170,8 +171,53 @@ export default function Signup() {
 
   const handleFinalSubmit = async (tamilData) => {
     try {
-      const perParts = (formData.permanent_address || '').split(',').map(s => s.trim());
-      const commParts = (formData.communication_address || '').split(',').map(s => s.trim());
+      const smartSplit = (addr, place = '') => {
+        if (!addr) return [];
+        if (addr.includes(',') || addr.includes('\n')) {
+          return addr.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+        }
+        const trimmed = addr.trim();
+        const words = trimmed.split(/\s+/);
+        if (words.length <= 3) return [trimmed];
+
+        const result = [];
+        let remaining = trimmed;
+        let cityPart = '';
+        const pinMatch = remaining.match(/(\b\d{6}\b)\s*$/);
+        if (pinMatch) {
+          const beforePin = remaining.slice(0, pinMatch.index).trim();
+          const cityWords = beforePin.split(/\s+/);
+          const lastWord = cityWords.pop() || '';
+          cityPart = (lastWord ? lastWord + ' ' : '') + pinMatch[1];
+          remaining = cityWords.join(' ');
+        } else if (place && remaining.toLowerCase().endsWith(place.toLowerCase().trim())) {
+          const pTrim = place.trim();
+          cityPart = remaining.slice(remaining.length - pTrim.length).trim();
+          remaining = remaining.slice(0, remaining.length - pTrim.length).trim();
+        }
+
+        const streetRegex = /^(.*?\b(?:street|st|road|rd|salai|nagar|colony|avenue|ave|lane|ln|cross|layout|apartment|apartments|flat|flats)\b\.?)\s*(.*)$/i;
+        const match = remaining.match(streetRegex);
+        if (match && match[1] && match[2]) {
+          result.push(match[1].trim());
+          if (match[2].trim()) result.push(match[2].trim());
+        } else {
+          const remWords = remaining.split(/\s+/);
+          if (remWords.length >= 4) {
+            const mid = Math.ceil(remWords.length / 2);
+            result.push(remWords.slice(0, mid).join(' '));
+            result.push(remWords.slice(mid).join(' '));
+          } else if (remaining) {
+            result.push(remaining);
+          }
+        }
+        if (cityPart) result.push(cityPart);
+        return result.filter(Boolean);
+      };
+
+      const perParts = smartSplit(formData.permanent_address, formData.place);
+      const effectiveComm = formData.communication_address?.trim() || formData.permanent_address?.trim() || '';
+      const commParts = smartSplit(effectiveComm, formData.place);
       
       const [bYear, bMonth, bDate] = selectedBookingDate 
         ? selectedBookingDate.split('-').map(Number) 
@@ -182,7 +228,9 @@ export default function Signup() {
         ...tamilData,
         kattalai_date: bDate,
         kattalai_month: bMonth,
-        whatsapp_number: formData.whatsapp_same_as_mobile ? formData.mobile : (formData.whatsapp_number || formData.mobile),
+        country_code: String(formData.country_code || '91').replace(/\D/g, ''),
+        whatsapp_number: formData.whatsapp_number || formData.mobile,
+        regn_date: formData.regn_date || new Date().toISOString().slice(0, 10),
         per_add_1: perParts[0] || '',
         per_add_2: perParts[1] || '',
         per_add_3: perParts.slice(2).join(', ') || '',
@@ -472,26 +520,36 @@ export default function Signup() {
                   <input className={`${inputClass} pl-[42px] h-full`} placeholder="Mobile Number" value={formData.mobile} onChange={set('mobile')} required />
                 </div>
 
-                {/* WhatsApp with 'Same as Mobile' toggle */}
-                <div className="flex flex-col gap-1 z-10">
-                  <div className={`flex items-center w-full h-[42px] rounded-full border border-[#e2d8cb] bg-white focus-within:border-[#5c292c] focus-within:ring-1 focus-within:ring-[#5c292c] transition-all shadow-sm ${formData.whatsapp_same_as_mobile ? 'opacity-70 bg-[#f8f3ea]' : ''}`}>
-                    <input 
-                      className="h-full flex-1 min-w-0 bg-transparent px-4 font-barlow text-[14px] text-gray-800 placeholder-[#9c9186] focus:outline-none disabled:text-gray-500" 
-                      placeholder="WhatsApp No." 
-                      value={formData.whatsapp_same_as_mobile ? formData.mobile : formData.whatsapp_number} 
-                      onChange={set('whatsapp_number')} 
-                      disabled={formData.whatsapp_same_as_mobile}
-                    />
-                    <div className="flex items-center gap-1.5 cursor-pointer px-3 h-full border-l border-[#ebdccb] shrink-0" onClick={() => setFormData(f => ({ ...f, whatsapp_same_as_mobile: !f.whatsapp_same_as_mobile, whatsapp_number: !f.whatsapp_same_as_mobile ? f.mobile : f.whatsapp_number }))}>
-                      <input 
-                        type="checkbox" 
-                        className="w-3.5 h-3.5 rounded border-[#c7b0a4] accent-[#5c292c] cursor-pointer"
-                        checked={formData.whatsapp_same_as_mobile}
-                        readOnly
-                      />
-                      <span className="text-[11px] text-[#786c62] font-medium whitespace-nowrap">Same as Mobile</span>
+                {/* WhatsApp with compact country code */}
+                <div className="flex items-center w-full h-[42px] rounded-full border border-[#e2d8cb] bg-white focus-within:border-[#5c292c] focus-within:ring-1 focus-within:ring-[#5c292c] transition-all shadow-sm z-10">
+                  <div className="relative flex items-center w-[54px] shrink-0 h-full border-r border-[#ebdccb]">
+                    <select
+                      className="h-full pl-2 pr-3.5 rounded-l-full bg-[#faf8f5] font-barlow text-[13px] font-bold text-[#5c292c] focus:outline-none w-full appearance-none cursor-pointer hover:bg-[#f3ede3] transition-colors text-center"
+                      value={String(formData.country_code || '91').replace(/\D/g, '')}
+                      onChange={(e) => setFormData(f => ({ ...f, country_code: e.target.value }))}
+                      title="Country Code for WhatsApp"
+                    >
+                      {COUNTRY_CODES.map(c => (
+                        <option key={c.code} value={c.code}>
+                          +{c.code}
+                        </option>
+                      ))}
+                      {formData.country_code && !COUNTRY_CODES.some(c => c.code === String(formData.country_code).replace(/\D/g, '')) && (
+                        <option value={String(formData.country_code).replace(/\D/g, '')}>
+                          +{String(formData.country_code).replace(/\D/g, '')}
+                        </option>
+                      )}
+                    </select>
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-[#8c8075]">
+                      <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6"/></svg>
                     </div>
                   </div>
+                  <input 
+                    className="h-full flex-1 min-w-0 bg-transparent px-3 font-barlow text-[13.5px] text-gray-800 placeholder-[#9c9186] focus:outline-none" 
+                    placeholder="WhatsApp No." 
+                    value={formData.whatsapp_number || ''} 
+                    onChange={set('whatsapp_number')} 
+                  />
                 </div>
 
                 {/* Email Address */}
@@ -595,29 +653,41 @@ export default function Signup() {
                   </div>
                 </div>
 
-                {/* Row 3: WhatsApp & Email */}
-                <div className="flex gap-2.5 relative h-[40px] z-10">
-                  <div className={`flex items-center w-[55%] h-full rounded-full border border-[#e2d8cb] bg-white focus-within:border-[#5c292c] focus-within:ring-1 focus-within:ring-[#5c292c] transition-all shadow-sm ${formData.whatsapp_same_as_mobile ? 'opacity-70 bg-[#f8f3ea]' : ''}`}>
-                    <input 
-                      className="h-full flex-1 min-w-0 bg-transparent px-4 font-barlow text-[14px] text-gray-800 placeholder-[#9c9186] focus:outline-none disabled:text-gray-500" 
-                      placeholder="WhatsApp No." 
-                      value={formData.whatsapp_same_as_mobile ? formData.mobile : formData.whatsapp_number} 
-                      onChange={set('whatsapp_number')} 
-                      disabled={formData.whatsapp_same_as_mobile}
-                    />
-                    <div className="flex items-center gap-1.5 cursor-pointer group px-3 h-full border-l border-[#ebdccb] shrink-0" onClick={() => setFormData(f => ({ ...f, whatsapp_same_as_mobile: !f.whatsapp_same_as_mobile, whatsapp_number: !f.whatsapp_same_as_mobile ? f.mobile : f.whatsapp_number }))}>
-                      <input 
-                        type="checkbox" 
-                        className="w-3.5 h-3.5 rounded border-[#c7b0a4] accent-[#5c292c] cursor-pointer"
-                        checked={formData.whatsapp_same_as_mobile}
-                        readOnly
-                      />
-                      <span className="text-[11.5px] text-[#786c62] font-medium whitespace-nowrap">Same as Mobile</span>
+                {/* Row 3: WhatsApp & Email (Balanced 50/50) */}
+                <div className="grid grid-cols-2 gap-2.5 relative h-[40px] z-10">
+                  <div className="flex items-center w-full h-full rounded-full border border-[#e2d8cb] bg-white focus-within:border-[#5c292c] focus-within:ring-1 focus-within:ring-[#5c292c] transition-all shadow-sm">
+                    <div className="relative flex items-center w-[54px] shrink-0 h-full border-r border-[#ebdccb]">
+                      <select
+                        className="h-full pl-2 pr-3.5 rounded-l-full bg-[#faf8f5] font-barlow text-[13px] font-bold text-[#5c292c] focus:outline-none w-full appearance-none cursor-pointer hover:bg-[#f3ede3] transition-colors text-center"
+                        value={String(formData.country_code || '91').replace(/\D/g, '')}
+                        onChange={(e) => setFormData(f => ({ ...f, country_code: e.target.value }))}
+                        title="Country Code for WhatsApp"
+                      >
+                        {COUNTRY_CODES.map(c => (
+                          <option key={c.code} value={c.code}>
+                            +{c.code}
+                          </option>
+                        ))}
+                        {formData.country_code && !COUNTRY_CODES.some(c => c.code === String(formData.country_code).replace(/\D/g, '')) && (
+                          <option value={String(formData.country_code).replace(/\D/g, '')}>
+                            +{String(formData.country_code).replace(/\D/g, '')}
+                          </option>
+                        )}
+                      </select>
+                      <div className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-[#8c8075]">
+                        <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6"/></svg>
+                      </div>
                     </div>
+                    <input 
+                      className="h-full flex-1 min-w-0 bg-transparent px-3.5 font-barlow text-[13.5px] text-gray-800 placeholder-[#9c9186] focus:outline-none rounded-r-full" 
+                      placeholder="WhatsApp No." 
+                      value={formData.whatsapp_number || ''} 
+                      onChange={set('whatsapp_number')} 
+                    />
                   </div>
 
                   <input 
-                    className={`${inputClass} w-[45%] h-full`} 
+                    className={`${inputClass} w-full h-full`} 
                     placeholder="Email Address" 
                     type="email" 
                     value={formData.email} 

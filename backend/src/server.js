@@ -3,12 +3,23 @@ const cors = require('cors');
 const helmet = require('helmet');
 require('dotenv').config();
 
+const path = require('path');
+const fs = require('fs');
+
 const apiRoutes = require('./routes');
 
 const app = express();
 
-// Apply secure HTTP headers
-app.use(helmet());
+// Ensure uploads/bug_reports directory exists
+const uploadsDir = path.join(__dirname, '../uploads/bug_reports');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Apply secure HTTP headers allowing cross-origin resource loading for static uploads
+app.use(helmet({
+  crossOriginResourcePolicy: false
+}));
 
 // Apply strict CORS in production, fallback to * for local development
 const corsOptions = {
@@ -17,6 +28,9 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Serve uploaded assets statically
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 const https = require('https');
 

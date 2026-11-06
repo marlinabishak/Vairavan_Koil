@@ -62,7 +62,7 @@ export default function Login() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full h-[42px] sm:h-[40px] px-4 rounded-full border border-[#e2d8cb] bg-white font-barlow text-[14px] text-gray-800 placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] transition-all shadow-sm hover:border-[#cfc2b2]"
-              placeholder="Enter your username"
+              placeholder="Office code or Email"
               required
             />
           </div>
