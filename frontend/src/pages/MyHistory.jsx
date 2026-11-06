@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { Link, Navigate } from 'react-router-dom';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 
 export default function MyHistory() {
   const { user } = useAuth();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   if (!user || user.role !== 'user') {
     return <Navigate to="/dashboard" />;
@@ -40,6 +42,16 @@ export default function MyHistory() {
               My Attendance History
             </h1>
           </div>
+
+          <button
+            onClick={() => setIsPasswordModalOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white hover:bg-[#5c292c] hover:text-white border border-[#ebdccb] text-xs font-semibold text-[#5c292c] transition-all shadow-xs cursor-pointer self-start sm:self-auto"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            </svg>
+            <span>Change Password</span>
+          </button>
         </div>
 
         {loading ? (
@@ -124,6 +136,11 @@ export default function MyHistory() {
           </div>
         )}
       </div>
+
+      <ChangePasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+      />
     </div>
   );
 }
