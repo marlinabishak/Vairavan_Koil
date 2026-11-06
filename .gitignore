@@ -13,8 +13,10 @@ yarn-debug.log*
 yarn-error.log*
 
 # Environment files
-.env.local
-.env.*.local
+.env
+.env.*
+backend/.env
+*.backup
 
 # Documentation
 deployment.md
@@ -27,3 +29,4 @@ guidance.md
 Thumbs.db
 .agents/
 .gemini/
+*.zip

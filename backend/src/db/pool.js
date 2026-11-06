@@ -1,5 +1,10 @@
 const mysql = require('mysql2/promise');
-require('dotenv').config();
+const path = require('path');
+const dotenv = require('dotenv');
+
+// Load environment variables reliably from backend/.env regardless of process.cwd()
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config(); // Fallback to current working directory if present
 
 const isAiven = process.env.DB_HOST && process.env.DB_HOST.includes('aivencloud.com');
 const defaultPort = isAiven ? '16613' : '3306';
@@ -24,6 +29,11 @@ const pool = mysql.createPool({
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000,
   connectTimeout: 20000
+});
+
+// Enforce READ COMMITTED across all connections to prevent stale MVCC snapshot lag
+pool.on('connection', (connection) => {
+  connection.query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
 });
 
 // Wrapper to mimic 'pg' behavior for easier migration
