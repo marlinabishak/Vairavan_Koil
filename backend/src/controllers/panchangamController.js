@@ -4,7 +4,7 @@ const pool = require('../db/pool');
 async function getPanchangam(req, res) {
   try {
     const { rows } = await pool.query(
-      `SELECT * FROM panchangam WHERE panch_date = $1`,
+      `SELECT *, DATE_FORMAT(panch_date, '%Y-%m-%d') as panch_date FROM panchangam WHERE panch_date = $1`,
       [req.params.date]
     );
     if (!rows.length) return res.status(404).json({ error: 'No panchangam data for this date' });
@@ -51,4 +51,46 @@ async function upsertPanchangam(req, res) {
   }
 }
 
-module.exports = { getPanchangam, upsertPanchangam };
+const { importPanchangamFile } = require('../../import_panchangam');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+async function uploadCsv(req, res) {
+  try {
+    const { csvContent } = req.body;
+    if (!csvContent) {
+      return res.status(400).json({ error: 'csvContent is required' });
+    }
+    const tempFile = path.join(os.tmpdir(), `panchangam_import_${Date.now()}.csv`);
+    fs.writeFileSync(tempFile, csvContent, 'utf8');
+    const count = await importPanchangamFile(tempFile);
+    try { fs.unlinkSync(tempFile); } catch (e) {}
+
+    // Audit log
+    try {
+      const { v4: uuidv4 } = require('uuid');
+      const staffName = req.user?.name || 'Administrator';
+      const staffRole = req.user?.role || 'admin';
+      const staffUsername = req.user?.email ? ` (login: ${req.user.email})` : '';
+      await pool.query(
+        `INSERT INTO history_logs (id, user_id, action, details) VALUES ($1, $2, $3, $4)`,
+        [
+          uuidv4(),
+          req.user?.id || null,
+          'Uploaded Panchangam',
+          `Imported ${count} days of Panchangam data from CSV. Uploaded by ${staffName} [${staffRole}]${staffUsername}.`
+        ]
+      );
+    } catch (logErr) {
+      console.error('Audit log failed for panchangam upload:', logErr.message);
+    }
+
+    res.json({ message: `Successfully imported ${count} days of Panchangam data`, count });
+  } catch (err) {
+    console.error('Error [uploadCsv]:', err.stack || err);
+    res.status(500).json({ error: err.message || 'Failed to import panchangam CSV' });
+  }
+}
+
+module.exports = { getPanchangam, upsertPanchangam, uploadCsv };

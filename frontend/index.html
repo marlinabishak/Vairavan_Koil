@@ -4,8 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <script>
-      // Live API endpoint
-      window.__API_URL__ = window.__API_URL__ || 'https://vairavan-koil.onrender.com/api';
+      // Live API endpoint for production deployment
+      if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        window.__API_URL__ = window.__API_URL__ || 'https://vairavan-koil.onrender.com/api';
+      }
       if ('scrollRestoration' in history) {
         history.scrollRestoration = 'manual';
       }

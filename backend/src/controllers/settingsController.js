@@ -22,6 +22,10 @@ async function getSettings(req, res) {
 // PUT /api/settings
 async function updateSetting(req, res) {
   try {
+    if (!req.user || (req.user.role !== 'superadmin' && req.user.role !== 'admin')) {
+      return res.status(403).json({ error: 'Access denied. Only administrators can update system settings.' });
+    }
+
     const { key, value } = req.body;
     if (!key || value === undefined) {
       return res.status(400).json({ error: 'Key and value are required' });

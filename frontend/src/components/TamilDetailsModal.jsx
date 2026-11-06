@@ -278,9 +278,6 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
     if (!formData.name_ta?.trim()) newErrors.name_ta = "Full Name is required";
     if (!formData.star_ta?.trim()) newErrors.star_ta = "Star in Tamil is required";
     if (!formData.place_ta?.trim()) newErrors.place_ta = "Place in Tamil is required";
-    if ((!formData.amount || isNaN(formData.amount) || parseFloat(formData.amount) <= 0) && !initialData) {
-      newErrors.amount = "Valid Kattalai amount is required";
-    }
     return newErrors;
   };
 
@@ -288,10 +285,7 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
     formData.title_ta?.trim() &&
     formData.name_ta?.trim() &&
     formData.star_ta?.trim() &&
-    formData.place_ta?.trim() &&
-    formData.amount &&
-    !isNaN(formData.amount) &&
-    parseFloat(formData.amount) > 0
+    formData.place_ta?.trim()
   );
 
   const handleSubmit = (e) => {
@@ -470,35 +464,19 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
             </div>
           </div>
 
-          {/* Row 3: Kattalai Amount & Comments (Responsive flex-col on mobile, flex-row on desktop) */}
-          <div className="flex flex-col sm:flex-row gap-2.5">
-            <div className="w-full sm:w-[150px] shrink-0">
-              <label className="flex items-center justify-between text-[#5c292c] font-barlow font-semibold text-[12px] sm:text-[12.5px] mb-1 px-1">
-                <span>Kattalai Amount (₹) <span className="text-red-500">*</span></span>
-              </label>
-              <input
-                type="text"
-                name="amount"
-                value={formData.amount}
-                onChange={handleChange}
-                placeholder="e.g. 1200"
-                className={getInputClass(!!errors.amount)}
-              />
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <label className="flex items-center justify-between text-[#5c292c] font-barlow font-semibold text-[12px] sm:text-[12.5px] mb-1 px-1">
-                <span>Comments / Remarks</span>
-              </label>
-              <input
-                type="text"
-                name="comments"
-                value={formData.comments}
-                onChange={handleChange}
-                placeholder="e.g. Online Devotee Registration / Special Notes"
-                className={getInputClass(!!errors.comments)}
-              />
-            </div>
+          {/* Row 3: Comments (Full width) */}
+          <div className="w-full">
+            <label className="flex items-center justify-between text-[#5c292c] font-barlow font-semibold text-[12px] sm:text-[12.5px] mb-1 px-1">
+              <span>Comments / Remarks</span>
+            </label>
+            <input
+              type="text"
+              name="comments"
+              value={formData.comments}
+              onChange={handleChange}
+              placeholder="e.g. Online Devotee Registration / Special Notes"
+              className={getInputClass(!!errors.comments)}
+            />
           </div>
 
           {/* Validation Banner if errors exist */}
@@ -521,9 +499,9 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
             <button
               type="submit"
               className="flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-9 h-[38px] rounded-full shadow-md bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow-lg cursor-pointer active:scale-[0.99]"
-              title={initialData ? "Update details" : "Proceed to payment"}
+              title={initialData ? "Update Details" : "Pay"}
             >
-              {initialData ? "Update Details" : "Pay Now"}
+              {initialData ? "Update Details" : "Pay"}
             </button>
           </div>
         </form>

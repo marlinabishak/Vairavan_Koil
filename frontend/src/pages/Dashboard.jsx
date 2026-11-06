@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef, Fragment } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo, Fragment } from 'react';
 import { api } from '../api/client.js';
 import DashboardHeader from '../components/DashboardHeader.jsx';
 import KattalaiColumn from '../components/KattalaiColumn.jsx';
@@ -12,21 +12,67 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function getWeekRange(dateStr) {
+  try {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const curr = new Date(y, m - 1, d, 12, 0, 0);
+    const dayOfWeek = curr.getDay(); // 0 is Sunday, ..., 6 is Saturday
+    const sunday = new Date(y, m - 1, d - dayOfWeek, 12, 0, 0);
+    const saturday = new Date(y, m - 1, d - dayOfWeek + 6, 12, 0, 0);
+    const fmt = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    return { fromDate: fmt(sunday), toDate: fmt(saturday) };
+  } catch (e) {
+    return { fromDate: dateStr, toDate: dateStr };
+  }
+}
+
+function getMonthRange(dateStr) {
+  try {
+    const parts = dateStr.split('-');
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const lastDay = new Date(y, m, 0).getDate();
+    const mStr = String(m).padStart(2, '0');
+    return { fromDate: `${y}-${mStr}-01`, toDate: `${y}-${mStr}-${String(lastDay).padStart(2, '0')}` };
+  } catch (e) {
+    return { fromDate: dateStr, toDate: dateStr };
+  }
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   
+  const isDevotee = user?.role === 'user';
+
   const [date, setDate] = useState(() => {
+    if (user?.role === 'user' && user?.booking_date) {
+      return user.booking_date; // strictly lock devotee to their own registered kattalai date
+    }
+    const params = new URLSearchParams(window.location.search);
+    const qDate = params.get('date');
+    if (qDate && /^\d{4}-\d{2}-\d{2}$/.test(qDate)) {
+      return qDate;
+    }
     if (user?.booking_date) {
-      return user.booking_date; // Backend now sends 'YYYY-MM-DD'
+      return user.booking_date;
     }
     return todayISO();
   });
 
-  const [showOnlyUser, setShowOnlyUser] = useState(user?.role === 'user');
+  const handleDateChange = (newDate) => {
+    if (user?.role === 'user') return; // Devotees cannot change dates
+    setDate(newDate);
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [highlightedBookingId, setHighlightedBookingId] = useState(null);
   const [view, setView] = useState('daily');
   const [lang, setLang] = useState('en');
+
+  // Custom date range for Viboothi absentee printing
+  const [customRange, setCustomRange] = useState({ fromDate: '', toDate: '' });
+  const [rangeAbsentees, setRangeAbsentees] = useState([]);
+  const [todoLoading, setTodoLoading] = useState(false);
 
   const [kattalaiTypes, setKattalaiTypes] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -38,13 +84,83 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const activeRange = useMemo(() => {
+    if (view === 'weekly') {
+      return getWeekRange(date);
+    }
+    if (view === 'monthly') {
+      if (customRange.fromDate && customRange.toDate) {
+        return customRange;
+      }
+      return getMonthRange(date);
+    }
+    return { fromDate: date, toDate: date };
+  }, [view, date, customRange]);
+
+  const activeRangeLabel = useMemo(() => {
+    try {
+      if (view === 'daily') {
+        const d = new Date(date + 'T00:00:00');
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+      if (view === 'weekly') {
+        const { fromDate, toDate } = getWeekRange(date);
+        const d1 = new Date(fromDate + 'T00:00:00');
+        const d2 = new Date(toDate + 'T00:00:00');
+        return `${d1.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} – ${d2.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+      }
+      if (view === 'monthly') {
+        if (customRange.fromDate && customRange.toDate) {
+          const d1 = new Date(customRange.fromDate + 'T00:00:00');
+          const d2 = new Date(customRange.toDate + 'T00:00:00');
+          return `${d1.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} – ${d2.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+        }
+        const d = new Date(date + 'T00:00:00');
+        return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+      }
+    } catch (e) {
+      return `${activeRange.fromDate} to ${activeRange.toDate}`;
+    }
+    return `${activeRange.fromDate} to ${activeRange.toDate}`;
+  }, [view, date, customRange, activeRange]);
+
+  const handleCustomRangeChange = useCallback((from, to) => {
+    setCustomRange({ fromDate: from, toDate: to });
+    setView('monthly');
+  }, []);
+
+  const handleSelectDevotee = useCallback((devotee) => {
+    if (!devotee || user?.role === 'user') return;
+    const currentYear = date ? parseInt(date.split('-')[0], 10) : new Date().getFullYear();
+    const m = String(devotee.kattalai_month || 1).padStart(2, '0');
+    const d = String(devotee.kattalai_date || 1).padStart(2, '0');
+    const targetDate = `${currentYear}-${m}-${d}`;
+
+    setDate(targetDate);
+    setView('daily');
+    setHighlightedBookingId(devotee.id);
+
+    // Give DOM time to update with new day's bookings, then scroll into view
+    setTimeout(() => {
+      const el = document.getElementById(`booking-pill-${devotee.id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 450);
+
+    // Auto-clear highlight ring after 4 seconds
+    setTimeout(() => {
+      setHighlightedBookingId((curr) => (curr === devotee.id ? null : curr));
+    }, 4000);
+  }, [date, user?.role]);
+
   const loadAll = useCallback(async () => {
     try {
       setLoading(true);
       // Fetch data in parallel
       const [fetchedTypes, fetchedBookings, fetchedPanchangam, fetchedTodos] = await Promise.all([
         api.getKattalaiTypes().catch(() => []),
-        api.getBookings(date, searchQuery).catch(() => []),
+        api.getBookings(date).catch(() => []),
         api.getPanchangam(date).catch(() => null),
         api.getTodos().catch(() => [])
       ]);
@@ -59,7 +175,38 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [date, searchQuery]);
+  }, [date]);
+
+  // Fetch absentees for the selected range (Daily, Weekly, Monthly)
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAbsentees() {
+      if (view === 'daily') {
+        const abs = bookings.filter(b => !b.present);
+        setRangeAbsentees(abs);
+        return;
+      }
+      try {
+        setTodoLoading(true);
+        setRangeAbsentees([]);
+        const res = await api.getBookings({
+          fromDate: activeRange.fromDate,
+          toDate: activeRange.toDate,
+          attendance: 'absent'
+        });
+        if (!cancelled) {
+          setRangeAbsentees(Array.isArray(res) ? res : []);
+        }
+      } catch (err) {
+        console.error('Failed to load range absentees:', err);
+        if (!cancelled) setRangeAbsentees([]);
+      } finally {
+        if (!cancelled) setTodoLoading(false);
+      }
+    }
+    loadAbsentees();
+    return () => { cancelled = true; };
+  }, [activeRange, view, bookings]);
 
   const initialLoadDone = useRef(false);
 
@@ -125,6 +272,9 @@ export default function Dashboard() {
     try {
       // Optimistic update
       setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, present } : b)));
+      if (present) {
+        setRangeAbsentees((prev) => prev.filter((b) => b.id !== id));
+      }
       const target_year = date ? parseInt(date.split("-")[0], 10) : new Date().getFullYear();
       await api.togglePresent(id, present, user.id, user.name, user.role, target_year);
     } catch (err) {
@@ -150,8 +300,8 @@ export default function Dashboard() {
 
   function bookingsFor(kattalaiTypeId) {
     let filtered = bookings.filter((b) => b.kattalai_type_id === kattalaiTypeId);
-    if (showOnlyUser && user) {
-      filtered = filtered.filter((b) => b.id === user.id);
+    if (isDevotee && user) {
+      filtered = filtered.filter((b) => b.id === user.id || (b.code && user.username && b.code.toLowerCase() === user.username.toLowerCase()));
     }
     return filtered;
   }
@@ -165,8 +315,6 @@ export default function Dashboard() {
         : list
     ));
   }
-
-  const isDevotee = user?.role === 'user';
 
   // Build the renderable blocks (columns + todo list)
   const renderBlocks = [];
@@ -184,7 +332,8 @@ export default function Dashboard() {
             bookings={bks}
             onTogglePresent={handleTogglePresent}
             onEdit={handleEdit}
-            onAddNew={setModalType}
+            onAddNew={(type, slot) => setModalType({ kattalaiType: type, initialSlot: slot })}
+            highlightedBookingId={highlightedBookingId}
           />
         </div>
       );
@@ -193,25 +342,33 @@ export default function Dashboard() {
 
   // Hide ToDo list entirely for devotees
   if (!isDevotee && kattalaiTypes.length > 0) {
+    const activeTodos = (todos && todos.length > 0) ? todos : [
+      { id: 'viboothi-list', title: 'Viboothi to be sent to', items: [] },
+      { id: 'reminder-list', title: 'Reminder Letter to send', items: [] }
+    ];
+
+    const mappedLists = activeTodos.map(list => {
+      if (list.title === 'Viboothi to be sent to') {
+        return {
+          ...list,
+          rangeLabel: activeRangeLabel,
+          items: rangeAbsentees.map(b => ({
+            id: b.id,
+            name: b.name,
+            code: b.code,
+            completed: false,
+            isDynamic: true,
+            booking: b
+          }))
+        };
+      }
+      return list;
+    });
+
     renderBlocks.push(
       <div key="todo-list" className="w-full md:w-[300px] flex-shrink-0 mt-4 md:mt-0">
         <ToDoList 
-          lists={todos.map(list => {
-            if (list.title === 'Viboothi to be sent to') {
-              const absentees = bookings.filter(b => !b.present);
-              return {
-                ...list,
-                items: absentees.map(b => ({
-                  id: b.id,
-                  name: b.name,
-                  completed: false,
-                  isDynamic: true,
-                  booking: b
-                }))
-              };
-            }
-            return list;
-          })} 
+          lists={mappedLists} 
           onAddItem={handleAddTodoItem} 
           onPrintList={setPrintList}
         />
@@ -244,16 +401,17 @@ export default function Dashboard() {
         <DashboardHeader
           date={date}
           panchangam={panchangam}
-          onDateChange={(newDate) => {
-            setDate(newDate);
-            setShowOnlyUser(false);
-          }}
+          onDateChange={handleDateChange}
           view={view}
           onViewChange={setView}
+          customRange={customRange}
+          onCustomRangeChange={handleCustomRangeChange}
+          activeRangeLabel={activeRangeLabel}
           lang={lang}
           onLangChange={setLang}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          onSelectDevotee={handleSelectDevotee}
         />
       </div>
 
@@ -282,7 +440,7 @@ export default function Dashboard() {
       </main>
 
       {/* Render the Panchangam bottom strip */}
-      <PanchangamStrip panchangam={panchangam} />
+      <PanchangamStrip panchangam={panchangam} loading={loading} />
 
       {/* Mobile Sticky Bottom Bar */}
       <div className="md:hidden fixed bottom-0 left-0 w-full h-[48px] flex items-center justify-center pointer-events-none z-50">
@@ -302,7 +460,8 @@ export default function Dashboard() {
       {/* Modals */}
       {modalType && (
         <BookingModal
-          kattalaiType={modalType}
+          kattalaiType={modalType.kattalaiType || modalType}
+          initialSlot={modalType.initialSlot}
           date={date}
           kattalaiTypes={kattalaiTypes}
           bookings={bookings}
@@ -327,7 +486,7 @@ export default function Dashboard() {
           }}
         />
       )}
-      {printList && (
+      {printList && user && (user.role === 'admin' || user.role === 'superadmin') && (
         <PrintModal list={printList} date={date} onClose={() => setPrintList(null)} />
       )}
     </div>

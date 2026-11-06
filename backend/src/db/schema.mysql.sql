@@ -149,9 +149,6 @@ CREATE INDEX idx_todo_items_list ON todo_items(todo_list_id);
 -- ------------------------------------------------------------
 CREATE TABLE panchangam (
   panch_date        DATE PRIMARY KEY,
-  tamil_month       VARCHAR(40),
-  tamil_year        VARCHAR(40),
-  tamil_day_number  INT,
   nalla_neram       JSON,
   yamagandam        JSON,
   kuligai           JSON,
@@ -165,6 +162,9 @@ CREATE TABLE panchangam (
   parigaram         VARCHAR(120),
   special_note      TEXT,
   worship_note      TEXT,
+  tamil_month       VARCHAR(40),
+  tamil_year        VARCHAR(40),
+  tamil_day_number  INT,
   created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

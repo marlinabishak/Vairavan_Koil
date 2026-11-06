@@ -62,6 +62,7 @@ async function runTestSuite() {
     // Update setting to 4500
     let putSuccess = false;
     await settingsController.updateSetting({
+      user: { role: 'superadmin' },
       body: { key: 'transfer_base_amount', value: 4500 }
     }, {
       json: (data) => { putSuccess = data.success; },
@@ -75,6 +76,7 @@ async function runTestSuite() {
 
     // Reset back to 3500
     await settingsController.updateSetting({
+      user: { role: 'superadmin' },
       body: { key: 'transfer_base_amount', value: 3500 }
     }, {
       json: () => {},

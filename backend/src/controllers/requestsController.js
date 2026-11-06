@@ -45,6 +45,26 @@ async function createRequest(req, res) {
       `INSERT INTO edit_requests (id, booking_id, status) VALUES ($1, $2, 'pending')`,
       [id, booking_id]
     );
+
+    // Audit log
+    try {
+      const { rows: bRows } = await pool.query('SELECT name, code FROM bookings WHERE id = $1', [booking_id]);
+      const bName = bRows[0]?.name || '';
+      const bCode = bRows[0]?.code || '';
+      await pool.query(
+        `INSERT INTO history_logs (id, user_id, action, details, booking_id) VALUES ($1, $2, $3, $4, $5)`,
+        [
+          uuidv4(),
+          req.user?.id || null,
+          'REQUESTED_EDIT',
+          `Devotee "${bName}" (${bCode}) submitted an edit permission request for locked details.`,
+          booking_id
+        ]
+      );
+    } catch (logErr) {
+      console.error('Audit log failed for request creation:', logErr.message);
+    }
+
     const { rows } = await pool.query('SELECT * FROM edit_requests WHERE id = $1', [id]);
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -61,13 +81,43 @@ async function updateRequestStatus(req, res) {
       return res.status(400).json({ error: 'Invalid status' });
     }
 
+    const { rows: reqRows } = await pool.query(`
+      SELECT e.*, b.name as booking_name, b.code as booking_code 
+      FROM edit_requests e 
+      JOIN bookings b ON e.booking_id = b.id 
+      WHERE e.id = $1`, 
+      [req.params.id]
+    );
+    if (reqRows.length === 0) return res.status(404).json({ error: 'Request not found' });
+    const targetReq = reqRows[0];
+
     await pool.query(
       `UPDATE edit_requests SET status = $1 WHERE id = $2`,
       [status, req.params.id]
     );
+
+    // Audit log
+    try {
+      const { v4: uuidv4 } = require('uuid');
+      const staffName = req.user?.name || 'Administrator';
+      const staffRole = req.user?.role || 'admin';
+      const staffUsername = req.user?.email ? ` (login: ${req.user.email})` : '';
+      const actionTitle = status === 'approved' ? 'Approved Edit Request' : (status === 'rejected' ? 'Rejected Edit Request' : 'Updated Edit Request');
+      await pool.query(
+        `INSERT INTO history_logs (id, user_id, action, details, booking_id) VALUES ($1, $2, $3, $4, $5)`,
+        [
+          uuidv4(),
+          req.user?.id || null,
+          actionTitle,
+          `Edit request for devotee "${targetReq.booking_name}" (${targetReq.booking_code}) was ${status.toUpperCase()} by ${staffName} [${staffRole}]${staffUsername}.`,
+          targetReq.booking_id
+        ]
+      );
+    } catch (logErr) {
+      console.error('Audit log failed for request update:', logErr.message);
+    }
     
     const { rows } = await pool.query('SELECT * FROM edit_requests WHERE id = $1', [req.params.id]);
-    if (rows.length === 0) return res.status(404).json({ error: 'Request not found' });
     res.json(rows[0]);
   } catch (err) {
     console.error('Error [requestsController]:', err.stack || err);

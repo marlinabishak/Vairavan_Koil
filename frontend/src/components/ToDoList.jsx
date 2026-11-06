@@ -1,7 +1,10 @@
+import React from 'react';
+import { useAuth } from '../context/AuthContext';
+
 /**
- * Figma "To do List" card.
+ * Figma "To do List" card - Exact visual reproduction from Figma.
  *
- * Card: white fill (#ffffff), border 2px #cdb9ab, rounded corners
+ * Card: white fill (#ffffff), border 2px #cdb9ab, rounded corners (8px)
  * "To do List" label: Barlow 400, 12px, black, top-left
  * Plus icon: top-right corner
  * Sub-headers: 14px tall pill, bg #cdb9ab, text Barlow 400 9px black
@@ -10,6 +13,8 @@
  * Vertical line: 3px wide #cdb9ab on right side
  */
 export default function ToDoList({ lists, onAddItem, onPrintList }) {
+  const { user } = useAuth();
+  const canPrint = user && (user.role === 'admin' || user.role === 'superadmin');
   return (
     <div
       style={{
@@ -24,13 +29,16 @@ export default function ToDoList({ lists, onAddItem, onPrintList }) {
       <div className="flex items-center justify-between" style={{ marginBottom: '8px' }}>
         <span className="font-barlow font-normal text-fig-12 text-fig-text">To do List</span>
         <button
-          className="flex items-center justify-center"
+          type="button"
+          onClick={() => onAddItem && onAddItem(lists[0]?.id)}
+          className="flex items-center justify-center cursor-pointer"
           style={{
             width: '16px',
             height: '16px',
             borderRadius: '8px',
             border: '1px solid #000',
           }}
+          title="Add Item"
         >
           <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
             <path d="M4 1v6M1 4h6" stroke="#000" strokeWidth="1" strokeLinecap="round" />
@@ -57,20 +65,33 @@ export default function ToDoList({ lists, onAddItem, onPrintList }) {
               {list.title}
             </span>
             <div className="flex items-center gap-1">
-              {list.title === 'Viboothi to be sent to' && list.items.length > 0 && onPrintList && (
+              {canPrint && list.title === 'Viboothi to be sent to' && list.items?.length > 0 && onPrintList && (
                 <button
+                  type="button"
                   onClick={() => onPrintList(list)}
-                  className="flex items-center justify-center text-[8px] bg-white text-[#5c292c] rounded-[4px] px-1 hover:bg-gray-100 border border-[#5c292c]"
+                  className="flex items-center justify-center text-[8px] bg-white text-[#5c292c] rounded-[4px] px-1 hover:bg-gray-100 border border-[#5c292c] cursor-pointer"
                   style={{ height: '10px', lineHeight: '8px' }}
                   title="Print Labels"
                 >
                   Print
                 </button>
               )}
+              {canPrint && list.title === 'Reminder Letter to send' && list.items?.length > 0 && onPrintList && (
+                <button
+                  type="button"
+                  onClick={() => onPrintList(list)}
+                  className="flex items-center justify-center text-[8px] bg-white text-[#5c292c] rounded-[4px] px-1 hover:bg-gray-100 border border-[#5c292c] cursor-pointer"
+                  style={{ height: '10px', lineHeight: '8px' }}
+                  title="Print Reminder Letters"
+                >
+                  Print
+                </button>
+              )}
               <button
-                onClick={() => onAddItem(list.id)}
+                type="button"
+                onClick={() => onAddItem && onAddItem(list.id)}
                 aria-label="Add item"
-                className="flex items-center justify-center"
+                className="flex items-center justify-center cursor-pointer"
                 style={{
                   width: '10px',
                   height: '10px',
@@ -87,15 +108,16 @@ export default function ToDoList({ lists, onAddItem, onPrintList }) {
 
           {/* Items: Barlow 400, 14px, line-height 21px */}
           <div style={{ paddingLeft: '4px', marginBottom: '4px' }}>
-            {list.items.map((item, i) => (
-              <p
-                key={item.id}
-                className={`font-barlow font-normal text-fig-14-todo text-fig-text ${item.completed ? 'line-through opacity-50' : ''}`}
-              >
-                {i + 1}, {item.name}
-              </p>
-            ))}
-            {!list.items.length && (
+            {list.items && list.items.length > 0 ? (
+              list.items.map((item, i) => (
+                <p
+                  key={item.id}
+                  className={`font-barlow font-normal text-fig-14-todo text-fig-text ${item.completed ? 'line-through opacity-50' : ''}`}
+                >
+                  {i + 1}, {item.name}
+                </p>
+              ))
+            ) : (
               <p className="font-barlow font-normal text-fig-14-todo text-fig-text opacity-40 italic">
                 No entries yet
               </p>

@@ -13,13 +13,14 @@ function truncateName(name) {
   return name;
 }
 
-export default function KattalaiPill({ booking, onTogglePresent, onEdit, compact = false }) {
+export default function KattalaiPill({ booking, onTogglePresent, onEdit, compact = false, isHighlighted = false }) {
   const { user } = useAuth();
   const [isHovered, setIsHovered] = useState(false);
   const bgColor = COLOR_MAP[booking.color_key] || '#f37435';
   const pillWidth = compact ? 'w-[70px]' : 'w-full md:w-[300px]';
 
-  const canEdit = user && (user.role === 'admin' || user.role === 'superadmin' || (user.role === 'user' && booking.id === user.id));
+  const isDevotee = user?.role === 'user';
+  const canEdit = user && (user.role === 'admin' || user.role === 'superadmin' || (isDevotee && (booking.id === user.id || (booking.code && user.username && booking.code.toLowerCase() === user.username.toLowerCase()))));
 
   // Format date correctly
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -27,7 +28,10 @@ export default function KattalaiPill({ booking, onTogglePresent, onEdit, compact
 
   return (
     <div
-      className={`relative flex items-center transition-all duration-300 hover:brightness-105 hover:shadow-md cursor-default ${pillWidth} ${isHovered ? 'z-50' : 'z-0'}`}
+      id={`booking-pill-${booking.id}`}
+      className={`relative flex items-center transition-all duration-300 hover:brightness-105 hover:shadow-md cursor-default ${pillWidth} ${isHovered ? 'z-50' : 'z-0'} ${
+        isHighlighted ? 'ring-4 ring-[#5c292c] ring-offset-2 scale-[1.03] shadow-xl z-30 animate-pulse' : ''
+      }`}
       style={{
         height: '30px',
         borderRadius: '15px',
@@ -38,8 +42,12 @@ export default function KattalaiPill({ booking, onTogglePresent, onEdit, compact
     >
       {/* Present toggle circle: 20x20, 2px stroke white, positioned 5px from left */}
       <button
-        onClick={() => onTogglePresent(booking.id, !booking.present)}
-        className="absolute flex items-center justify-center transition-transform duration-200 hover:scale-110"
+        type="button"
+        disabled={isDevotee}
+        onClick={() => {
+          if (!isDevotee) onTogglePresent(booking.id, !booking.present);
+        }}
+        className={`absolute flex items-center justify-center transition-transform duration-200 ${isDevotee ? 'cursor-default' : 'hover:scale-110 cursor-pointer'}`}
         style={{
           left: '5px',
           top: '5px',
@@ -51,7 +59,7 @@ export default function KattalaiPill({ booking, onTogglePresent, onEdit, compact
           zIndex: 10,
         }}
         aria-label="Toggle present"
-        title={booking.present ? 'Present' : 'Not marked present'}
+        title={booking.present ? 'Attendance: Present' : (isDevotee ? 'Attendance: Not marked' : 'Toggle Present')}
       />
 
       {/* Sponsor name: Barlow 400, 14px, black, center-aligned */}

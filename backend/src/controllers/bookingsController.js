@@ -1,15 +1,55 @@
 const pool = require('../db/pool');
 
-// GET /api/bookings?date=2026-05-12
+// GET /api/bookings?date=2026-05-12 or ?fromDate=2026-10-01&toDate=2026-10-31 or ?month=10&year=2026
 // Returns bookings grouped-friendly (flat list; frontend groups by kattalai_type_id)
 async function listBookings(req, res) {
   try {
-    const { date, search } = req.query;
-    const targetYear = date ? parseInt(date.split("-")[0], 10) : new Date().getFullYear();
+    const { date, fromDate, toDate, month, year, search, attendance } = req.query;
+    const targetYear = (fromDate || date || (year ? String(year) : '')) ? 
+      parseInt(String(fromDate || date || year).split("-")[0], 10) : 
+      new Date().getFullYear();
     const params = [];
     const whereClause = [];
 
-    if (date) {
+    if (fromDate && toDate) {
+      const [sY, sM, sD] = fromDate.split('-').map(Number);
+      const [eY, eM, eD] = toDate.split('-').map(Number);
+      const start = new Date(sY, sM - 1, sD, 12, 0, 0);
+      const end = new Date(eY, eM - 1, eD, 12, 0, 0);
+      const pairs = [];
+      let curr = new Date(start);
+      let count = 0;
+      while (curr <= end && count <= 366) {
+        pairs.push({ m: curr.getMonth() + 1, d: curr.getDate() });
+        curr.setDate(curr.getDate() + 1);
+        count++;
+      }
+
+      if (pairs.length > 0) {
+        const monthMap = {};
+        for (const p of pairs) {
+          if (!monthMap[p.m]) monthMap[p.m] = [];
+          monthMap[p.m].push(p.d);
+        }
+
+        const monthClauses = [];
+        for (const [mStr, days] of Object.entries(monthMap)) {
+          params.push(parseInt(mStr, 10));
+          const mParam = `$${params.length}`;
+          const dayParams = days.map(d => {
+            params.push(d);
+            return `$${params.length}`;
+          });
+          monthClauses.push(`(b.kattalai_month = ${mParam} AND b.kattalai_date IN (${dayParams.join(', ')}))`);
+        }
+        whereClause.push(`(${monthClauses.join(' OR ')})`);
+      } else {
+        whereClause.push('1 = 0');
+      }
+    } else if (month) {
+      params.push(parseInt(month, 10));
+      whereClause.push(`b.kattalai_month = $${params.length}`);
+    } else if (date) {
       const parts = date.split('-');
       const m = parseInt(parts[1], 10);
       const d = parseInt(parts[2], 10);
@@ -17,16 +57,47 @@ async function listBookings(req, res) {
       whereClause.push(`b.kattalai_month = $${params.length - 1} AND b.kattalai_date = $${params.length}`);
     }
 
-    if (search) {
-      params.push(`%${search}%`);
-      const searchIdx = `$${params.length}`;
-      whereClause.push(`(
-        b.name LIKE ${searchIdx} OR
-        b.place LIKE ${searchIdx} OR
-        b.mobile LIKE ${searchIdx} OR
-        b.code LIKE ${searchIdx} OR
-        kt.name LIKE ${searchIdx}
-      )`);
+    if (attendance === 'absent') {
+      whereClause.push('(ybr.present IS NULL OR ybr.present = 0)');
+    } else if (attendance === 'present') {
+      whereClause.push('ybr.present = 1');
+    }
+
+    if (search && search.trim()) {
+      const tokens = search.trim().split(/\s+/).filter(Boolean);
+      tokens.forEach(tok => {
+        params.push(`%${tok}%`);
+        const searchIdx = `$${params.length}`;
+        whereClause.push(`(
+          b.name LIKE ${searchIdx} OR
+          b.name_ta LIKE ${searchIdx} OR
+          b.place LIKE ${searchIdx} OR
+          b.place_ta LIKE ${searchIdx} OR
+          b.mobile LIKE ${searchIdx} OR
+          b.whatsapp_number LIKE ${searchIdx} OR
+          b.code LIKE ${searchIdx} OR
+          b.star LIKE ${searchIdx} OR
+          b.star_ta LIKE ${searchIdx} OR
+          b.comm_add_1 LIKE ${searchIdx} OR
+          b.comm_add_2 LIKE ${searchIdx} OR
+          b.comm_add_3 LIKE ${searchIdx} OR
+          b.comm_add_4 LIKE ${searchIdx} OR
+          b.per_add_1 LIKE ${searchIdx} OR
+          kt.name LIKE ${searchIdx} OR
+          kt.name_ta LIKE ${searchIdx}
+        )`);
+      });
+    }
+
+    // Devotee isolation: if the caller is authenticated as a devotee ('user' role), strictly scope to their record
+    if (req.user && req.user.role === 'user') {
+      params.push(req.user.id);
+      if (req.user.username) {
+        params.push(req.user.username);
+        whereClause.push(`(b.id = $${params.length - 1} OR (b.code IS NOT NULL AND b.code != '' AND b.code = $${params.length}))`);
+      } else {
+        whereClause.push(`b.id = $${params.length}`);
+      }
     }
 
     const where = whereClause.length ? `WHERE ${whereClause.join(' AND ')}` : '';
@@ -44,6 +115,18 @@ async function listBookings(req, res) {
        ORDER BY b.kattalai_month, b.kattalai_date, kt.display_order, b.created_at`,
       params
     );
+
+    // If caller is completely unauthenticated (e.g. public signup slot capacity check), strip private devotee details
+    if (!req.user) {
+      const sanitized = rows.map(r => ({
+        id: r.id,
+        kattalai_type_id: r.kattalai_type_id,
+        kattalai_date: r.kattalai_date,
+        kattalai_month: r.kattalai_month
+      }));
+      return res.json(sanitized);
+    }
+
     res.json(rows);
   } catch (err) {
     console.error('Error [bookingsController]:', err.stack || err);
@@ -64,6 +147,14 @@ async function getBooking(req, res) {
       [req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Booking not found' });
+
+    // Devotee isolation: cannot view another devotee's booking details
+    if (req.user && req.user.role === 'user') {
+      if (req.params.id !== req.user.id && (!req.user.username || rows[0].code !== req.user.username)) {
+        return res.status(403).json({ error: 'Access denied. You can only view your own booking details.' });
+      }
+    }
+
     res.json(rows[0]);
   } catch (err) {
     console.error('Error [bookingsController]:', err.stack || err);
@@ -174,6 +265,16 @@ async function createBooking(req, res) {
 
 // PATCH /api/bookings/:id
 async function updateBooking(req, res) {
+  // Devotee isolation: cannot update another devotee's booking details
+  if (req.user && req.user.role === 'user') {
+    if (req.params.id !== req.user.id) {
+      const { rows: ownCheck } = await pool.query('SELECT code FROM bookings WHERE id = $1', [req.params.id]);
+      if (!ownCheck.length || !req.user.username || ownCheck[0].code !== req.user.username) {
+        return res.status(403).json({ error: 'Access denied. You can only update your own booking details.' });
+      }
+    }
+  }
+
   const fields = [
     'title', 'name', 'star', 'place', 'code', 'mobile', 'whatsapp_number', 'whatsapp_same_as_mobile',
     'email', 'amount', 'status', 'kattalai_type_id', 'kattalai_date', 'kattalai_month',
@@ -187,7 +288,7 @@ async function updateBooking(req, res) {
   let i = 1;
 
   let isUnlocked = false;
-  if (req.body.userRole === 'user') {
+  if (req.body.userRole === 'user' || (req.user && req.user.role === 'user')) {
     const reqRes = await pool.query(
       `SELECT status FROM edit_requests WHERE booking_id = $1 ORDER BY created_at DESC LIMIT 1`, 
       [req.params.id]
@@ -213,11 +314,54 @@ async function updateBooking(req, res) {
 
   values.push(req.params.id);
   try {
+    // Fetch existing record to calculate change diffs
+    let oldData = null;
+    try {
+      const { rows: oRows } = await pool.query('SELECT * FROM bookings WHERE id = $1', [req.params.id]);
+      if (oRows.length > 0) oldData = oRows[0];
+    } catch (e) {}
+
     await pool.query(
       `UPDATE bookings SET ${updates.join(', ')}
        WHERE id = $${i}`,
       values
     );
+
+    // Calculate field-level diff
+    const diffs = [];
+    if (oldData) {
+      for (const f of fields) {
+        if (req.body[f] !== undefined && String(req.body[f] ?? '') !== String(oldData[f] ?? '')) {
+          const oldVal = (oldData[f] === null || oldData[f] === undefined || oldData[f] === '') ? '(empty)' : oldData[f];
+          const newVal = (req.body[f] === null || req.body[f] === undefined || req.body[f] === '') ? '(empty)' : req.body[f];
+          diffs.push(`${f}: "${oldVal}" → "${newVal}"`);
+        }
+      }
+    }
+
+    if (diffs.length > 0) {
+      try {
+        const { v4: uuidv4 } = require('uuid');
+        const editorId = req.user?.id || req.body.user_id || null;
+        const editorName = req.user?.name || req.body.user_name || (editorId ? 'Staff' : 'Devotee / User');
+        const editorRole = req.user?.role || req.body.userRole || 'staff';
+        const editorUsername = req.user?.email || req.body.username || '';
+        const loginStr = editorUsername ? ` (login: ${editorUsername})` : '';
+
+        await pool.query(
+          `INSERT INTO history_logs (id, user_id, action, details, booking_id) VALUES ($1, $2, $3, $4, $5)`,
+          [
+            uuidv4(),
+            editorId,
+            'Updated Devotee',
+            `Devotee "${oldData?.name || ''}" (${oldData?.code || ''}) updated by ${editorName} [${editorRole}]${loginStr}. Changes: ${diffs.join('; ')}`,
+            req.params.id
+          ]
+        );
+      } catch (logErr) {
+        console.error('Audit log failed for booking update:', logErr.message);
+      }
+    }
     
     const { rows } = await pool.query('SELECT b.*, ybr.wa_status_en, ybr.wa_error_en, ybr.wa_status_ta, ybr.wa_error_ta, ybr.present, ybr.let_intimation FROM bookings b LEFT JOIN yearly_booking_records ybr ON b.id = ybr.booking_id AND ybr.record_year = YEAR(CURRENT_DATE()) WHERE b.id = ?', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Booking not found' });
@@ -230,6 +374,9 @@ async function updateBooking(req, res) {
 
 // PATCH /api/bookings/:id/present
 async function togglePresent(req, res) {
+  if (req.user && req.user.role === 'user') {
+    return res.status(403).json({ error: 'Access denied. Devotees cannot mark attendance.' });
+  }
   const { present, user_id, user_name, user_role, target_year } = req.body;
     const recordYear = target_year || new Date().getFullYear();
   try {
@@ -294,6 +441,9 @@ async function togglePresent(req, res) {
 
 // DELETE /api/bookings/:id
 async function deleteBooking(req, res) {
+  if (req.user && req.user.role === 'user') {
+    return res.status(403).json({ error: 'Access denied. Devotees cannot delete bookings.' });
+  }
   try {
     const { rowCount } = await pool.query('DELETE FROM bookings WHERE id = $1', [req.params.id]);
     if (!rowCount) return res.status(404).json({ error: 'Booking not found' });
@@ -306,6 +456,9 @@ async function deleteBooking(req, res) {
 
 // GET /api/bookings/export
 async function exportBookings(req, res) {
+  if (req.user && req.user.role === 'user') {
+    return res.status(403).json({ error: 'Access denied. Devotees cannot export bookings.' });
+  }
   try {
     const targetYear = req.query.year ? parseInt(req.query.year, 10) : (req.query.date ? parseInt(req.query.date.split('-')[0], 10) : new Date().getFullYear());
     const { rows } = await pool.query(
@@ -397,6 +550,9 @@ const getMyAttendance = async (req, res) => {
 
 // POST /api/bookings/:id/transfer
 async function transferBooking(req, res) {
+  if (req.user && req.user.role === 'user') {
+    return res.status(403).json({ error: 'Access denied. Only temple administration can execute kattalai transfers.' });
+  }
   try {
     const { id } = req.params;
     const {
@@ -463,7 +619,8 @@ async function transferBooking(req, res) {
     const oldPaidAmount = parseFloat(current.amount || 0);
     const differenceAmount = Math.max(0, baseTransferAmount - oldPaidAmount);
 
-    // 6. Update booking with son/daughter details
+    // 6. Update booking with son/daughter details (replaces father details in the exact same columns)
+    const countryCodeVal = req.body.country_code ? String(req.body.country_code).replace(/\D/g, '') : (current.country_code || '91');
     await pool.query(
       `UPDATE bookings SET
         title = $1, title_ta = $2,
@@ -471,22 +628,25 @@ async function transferBooking(req, res) {
         star = $5, star_ta = $6,
         place = $7, place_ta = $8,
         mobile = $9, whatsapp_number = $10,
-        email = $11,
-        per_add_1 = $12, per_add_2 = $13, per_add_3 = $14,
-        comm_add_1 = $15, comm_add_2 = $16, comm_add_3 = $17, comm_add_4 = $18,
-        amount = $19,
+        country_code = $11,
+        email = $12,
+        per_add_1 = $13, per_add_2 = $14, per_add_3 = $15,
+        comm_add_1 = $16, comm_add_2 = $17, comm_add_3 = $18, comm_add_4 = $19,
+        amount = $20,
+        kat_type = 'Inheritance',
         is_transferred = 1,
         transferred_at = CURRENT_TIMESTAMP,
-        transferred_from_name = $20,
-        transferred_from_title = $21,
-        transferred_fee_paid = $22
-       WHERE id = $23`,
+        transferred_from_name = $21,
+        transferred_from_title = $22,
+        transferred_fee_paid = $23
+       WHERE id = $24`,
       [
         title || current.title, title_ta || current.title_ta,
         name.trim(), name_ta ? name_ta.trim() : null,
         star || current.star, star_ta || current.star_ta,
         place || current.place, place_ta || current.place_ta,
         mobile || current.mobile, whatsapp_number || current.whatsapp_number,
+        countryCodeVal,
         email !== undefined ? email : current.email,
         per_add_1 !== undefined ? per_add_1 : current.per_add_1,
         per_add_2 !== undefined ? per_add_2 : current.per_add_2,
@@ -556,6 +716,108 @@ async function transferBooking(req, res) {
   }
 }
 
+// GET /api/bookings/search?q=...&limit=20
+async function searchBookings(req, res) {
+  try {
+    const { q, limit = 20 } = req.query;
+    if (!q || !q.trim()) {
+      return res.json([]);
+    }
+    const cleanQ = q.trim();
+    const searchTerm = `%${cleanQ}%`;
+    const lim = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
+
+    // Devotee isolation: Devotees cannot search across all temple members
+    if (req.user && req.user.role === 'user') {
+      const { rows } = await pool.query(
+        `SELECT b.id, b.code, b.title, b.title_ta, b.name, b.name_ta, b.star, b.star_ta,
+                b.place, b.place_ta, b.mobile, b.whatsapp_number,
+                b.kattalai_date, b.kattalai_month, b.kattalai_type_id,
+                kt.name AS kattalai_name, kt.name_ta AS kattalai_name_ta, kt.color_key
+         FROM bookings b
+         JOIN kattalai_types kt ON kt.id = b.kattalai_type_id
+         WHERE (b.id = ? OR (b.code IS NOT NULL AND b.code = ?)) AND (
+           b.name LIKE ? OR b.code LIKE ? OR b.mobile LIKE ?
+         )
+         LIMIT 1`,
+        [req.user.id, req.user.username || '', searchTerm, searchTerm, searchTerm]
+      );
+      return res.json(rows);
+    }
+
+    const { rows } = await pool.query(
+      `SELECT b.id, b.code, b.title, b.title_ta, b.name, b.name_ta, b.star, b.star_ta,
+              b.place, b.place_ta, b.mobile, b.whatsapp_number,
+              b.kattalai_date, b.kattalai_month, b.kattalai_type_id,
+              kt.name AS kattalai_name, kt.name_ta AS kattalai_name_ta, kt.color_key
+       FROM bookings b
+       JOIN kattalai_types kt ON kt.id = b.kattalai_type_id
+       WHERE (
+         b.name LIKE ? OR
+         b.name_ta LIKE ? OR
+         b.code LIKE ? OR
+         b.mobile LIKE ? OR
+         b.whatsapp_number LIKE ? OR
+         b.place LIKE ? OR
+         b.place_ta LIKE ? OR
+         b.star LIKE ? OR
+         b.star_ta LIKE ? OR
+         kt.name LIKE ? OR
+         kt.name_ta LIKE ?
+       )
+       ORDER BY b.kattalai_month, b.kattalai_date, b.name
+       LIMIT ?`,
+      [
+        searchTerm, searchTerm, searchTerm, searchTerm, searchTerm,
+        searchTerm, searchTerm, searchTerm, searchTerm, searchTerm,
+        searchTerm, lim
+      ]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error('Error [searchBookings]:', err.stack || err);
+    res.status(500).json({ error: 'Failed to search bookings' });
+  }
+}
+
+// GET /api/bookings/code/:code
+async function getBookingByCode(req, res) {
+  try {
+    const rawCode = decodeURIComponent(req.params.code || '').trim();
+    if (!rawCode) return res.status(400).json({ error: 'Office code is required' });
+
+    const clean = rawCode.toLowerCase().replace(/[\s\-_/]/g, '');
+
+    // Devotee isolation: cannot look up another devotee's code
+    if (req.user && req.user.role === 'user') {
+      const devoteeCode = (req.user.username || '').toLowerCase().replace(/[\s\-_/]/g, '');
+      if (clean !== devoteeCode) {
+        return res.status(403).json({ error: 'Access denied. You can only look up your own office code.' });
+      }
+    }
+
+    const { rows } = await pool.query(
+      `SELECT b.id, b.code, b.title, b.name, b.place, b.country_code, b.mobile, b.whatsapp_number
+       FROM bookings b
+       WHERE LOWER(b.code) = LOWER($1)
+          OR REPLACE(REPLACE(REPLACE(LOWER(b.code), ' ', ''), '-', ''), '/', '') = $2
+          OR LOWER(REPLACE(REPLACE(b.code, ' ', ''), '-', '')) = $3
+       LIMIT 1`,
+      [rawCode, clean, rawCode.toLowerCase().replace(/[\s\-]/g, '')]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ error: `No devotee record found for Office Code "${rawCode}"` });
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Error [getBookingByCode]:', err.stack || err);
+    res.status(500).json({ error: 'Failed to look up devotee by code', details: err.message });
+  }
+}
+
 module.exports = {
-  listBookings, getBooking, createBooking, updateBooking, togglePresent, deleteBooking, exportBookings, getMyAttendance, transferBooking
+  listBookings, getBooking, createBooking, updateBooking, togglePresent, deleteBooking, exportBookings, getMyAttendance, transferBooking, searchBookings, getBookingByCode
 };

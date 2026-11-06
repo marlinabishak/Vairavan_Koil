@@ -8,9 +8,82 @@ import { useAuth } from '../context/AuthContext';
  *   Pills stacked vertically with ~10px gap
  *   No background on the column itself
  */
-export default function KattalaiColumn({ kattalaiType, bookings, onTogglePresent, onEdit, onAddNew }) {
+export default function KattalaiColumn({ kattalaiType, bookings = [], onTogglePresent, onEdit, onAddNew, highlightedBookingId }) {
   const { user } = useAuth();
   const canAdd = user && user.role !== 'user' && user.role !== 'ulthurai';
+
+  const maxSlots = Math.max(kattalaiType.max_slots || 4, bookings.length);
+  const prefix = kattalaiType.color_key === 'morning' ? 'U' : 'A';
+
+  // Map each slot 1..maxSlots to an existing booking or empty
+  const slotMap = {};
+  const unassigned = [];
+
+  bookings.forEach((b) => {
+    let assigned = false;
+    if (b.code) {
+      const m = b.code.trim().match(/^([A-Za-z]+)\/(\d+)/);
+      if (m) {
+        const p = m[1].toUpperCase();
+        const s = parseInt(m[2], 10);
+        const isPrefixMatch = p === prefix || 
+          (prefix === 'U' && (p === 'UK' || p === 'U')) || 
+          (prefix === 'A' && (p === 'AJ' || p === 'A'));
+        if (isPrefixMatch && s >= 1 && s <= maxSlots && !slotMap[s]) {
+          slotMap[s] = b;
+          assigned = true;
+        }
+      }
+    }
+    if (!assigned) {
+      unassigned.push(b);
+    }
+  });
+
+  // Assign any remaining unassigned bookings into the first available slots
+  for (let s = 1; s <= maxSlots; s++) {
+    if (!slotMap[s] && unassigned.length > 0) {
+      slotMap[s] = unassigned.shift();
+    }
+  }
+
+  const slotItems = [];
+  for (let s = 1; s <= maxSlots; s++) {
+    const booking = slotMap[s];
+    if (booking) {
+      slotItems.push(
+        <KattalaiPill 
+          key={`booking-${booking.id}`} 
+          booking={booking} 
+          onTogglePresent={onTogglePresent} 
+          onEdit={onEdit} 
+          isHighlighted={booking.id === highlightedBookingId}
+        />
+      );
+    } else if (canAdd) {
+      slotItems.push(
+        <AddKattalaiButton 
+          key={`slot-${s}`} 
+          colorKey={kattalaiType.color_key} 
+          onClick={() => onAddNew(kattalaiType, s)} 
+        />
+      );
+    }
+  }
+
+  // Any remaining overflow bookings (if any)
+  while (unassigned.length > 0) {
+    const b = unassigned.shift();
+    slotItems.push(
+      <KattalaiPill 
+        key={`overflow-${b.id}`} 
+        booking={b} 
+        onTogglePresent={onTogglePresent} 
+        onEdit={onEdit} 
+        isHighlighted={b.id === highlightedBookingId}
+      />
+    );
+  }
 
   return (
     <div>
@@ -21,13 +94,7 @@ export default function KattalaiColumn({ kattalaiType, bookings, onTogglePresent
 
       {/* Stacked pills — 10px vertical gap between each */}
       <div className="flex flex-col" style={{ gap: '10px' }}>
-        {bookings.map((b) => (
-          <KattalaiPill key={b.id} booking={b} onTogglePresent={onTogglePresent} onEdit={onEdit} />
-        ))}
-        {canAdd && Array.from({ length: Math.max(0, (kattalaiType.max_slots || 0) - bookings.length) }).map((_, i) => (
-          <AddKattalaiButton key={`empty-${i}`} colorKey={kattalaiType.color_key} onClick={() => onAddNew(kattalaiType)} />
-        ))}
-        {/* If the admin wants to add beyond max_slots, they can do so in the settings by increasing max_slots */}
+        {slotItems}
       </div>
     </div>
   );
