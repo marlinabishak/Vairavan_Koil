@@ -247,7 +247,7 @@ async function createBooking(req, res) {
           uuidv4(),
           creatorId,
           'Created Booking',
-          `Devotee "${name}" (${code}) registered. Amount: ₹${amount || 0}. Registered by: ${creatorName} (${creatorRole})`,
+          `Devotee "${name}" (${code}) registered for Nithiya Kattalai. Amount: ₹${amount || 0}. Registered by: ${creatorName} (${creatorRole})`,
           id
         ]
       );
@@ -354,7 +354,7 @@ async function updateBooking(req, res) {
             uuidv4(),
             editorId,
             'Updated Devotee',
-            `Devotee "${oldData?.name || ''}" (${oldData?.code || ''}) updated by ${editorName} [${editorRole}]${loginStr}. Changes: ${diffs.join('; ')}`,
+            `Nithiya Kattalai for "${oldData?.name || ''}" (${oldData?.code || ''}) updated by ${editorName} [${editorRole}]${loginStr}. Changes: ${diffs.join('; ')}`,
             req.params.id
           ]
         );

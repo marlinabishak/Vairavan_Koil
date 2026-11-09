@@ -99,9 +99,9 @@ export default function Login() {
         )}
 
         <div className="mt-6 text-center text-sm font-barlow">
-          <span className="text-[#786c62]">Don't have an account? </span>
+          <span className="text-[#786c62]">New Devotee? </span>
           <Link to="/signup" className="text-[#f37435] hover:text-[#d05c24] font-semibold transition-colors">
-            Register here
+            Register Nithiya Kattalai
           </Link>
         </div>
       </div>

@@ -37,7 +37,7 @@ export default function AddKattalaiButton({ onClick, colorKey }) {
         className="hidden md:inline font-barlow font-normal text-fig-14 transition-colors duration-300 group-hover:brightness-90"
         style={{ color: themeColor }}
       >
-        Add a Kattalai
+        New Nithiya Kattalai
       </span>
     </button>
   );

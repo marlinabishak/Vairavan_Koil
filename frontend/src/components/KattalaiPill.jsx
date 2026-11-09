@@ -84,8 +84,8 @@ export default function KattalaiPill({ booking, onTogglePresent, onEdit, compact
           }}
           className={`absolute right-[8px] transition-all duration-300 hover:scale-125 ${isHovered ? 'opacity-100 scale-100' : 'opacity-80 md:opacity-0 pointer-events-auto md:pointer-events-none'}`}
           style={{ zIndex: 20 }}
-          title="Edit Details"
-          aria-label="Edit Details"
+          title="Edit Nithiya Kattalai"
+          aria-label="Edit Nithiya Kattalai"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.7)" strokeWidth="2.2">
             <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" strokeLinecap="round" strokeLinejoin="round"/>

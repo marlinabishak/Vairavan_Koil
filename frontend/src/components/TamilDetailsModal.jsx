@@ -206,7 +206,7 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
     const p_ta = initialData?.place_ta || translatePlaceToTamil(englishData?.place) || '';
     const n_ta = initialData?.name_ta || englishData?.name || '';
     const amt = initialData?.amount || englishData?.amount || 1000;
-    const cmt = initialData?.comments || englishData?.comments || 'Online Devotee Registration';
+    const cmt = initialData?.comments || englishData?.comments || 'Online Nithiya Kattalai Registration';
     return {
       title_ta: t_ta,
       name_ta: n_ta,
@@ -474,7 +474,7 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
               name="comments"
               value={formData.comments}
               onChange={handleChange}
-              placeholder="e.g. Online Devotee Registration / Special Notes"
+              placeholder="e.g. Online Nithiya Kattalai Registration / Special Notes"
               className={getInputClass(!!errors.comments)}
             />
           </div>

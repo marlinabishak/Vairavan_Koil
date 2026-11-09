@@ -132,7 +132,7 @@ export default function Signup() {
   const handleSignup = async (e) => {
     e.preventDefault();
     if (!selectedBookingDate) {
-      alert("Please select a Booking Date.");
+      alert("Please select a Nithiya Kattalai Date.");
       return;
     }
     if (!formData.code || !formData.kattalai_type_id) {
@@ -282,7 +282,7 @@ export default function Signup() {
               amount: orderData.amount,
               currency: orderData.currency,
               name: "Vairavan Kovil",
-              description: "Kattalai Booking",
+              description: "Nithiya Kattalai Registration",
               order_id: orderData.id,
               handler: async function (response) {
                 try {
@@ -308,7 +308,7 @@ export default function Signup() {
         console.warn('Online payment gateway note:', rzpErr);
       }
 
-      alert("Registration successful! The slot is now booked.");
+      alert("Nithiya Kattalai registration successful! The slot is now confirmed.");
       setShowTamilModal(false);
       setFormData(f => ({
         ...f,
@@ -329,7 +329,7 @@ export default function Signup() {
       }
     } catch (err) {
       console.error('Registration failed:', err);
-      alert(err.message || "Failed to register. Please try again.");
+      alert(err.message || "Failed to register Nithiya Kattalai. Please try again.");
     }
   };
 
@@ -417,7 +417,7 @@ export default function Signup() {
         <div className="flex flex-col items-center mb-5 sm:mb-6">
           <img src="/logo.svg" alt="Vairavan Koil" className="w-[160px] sm:w-[180px] h-auto mb-2 drop-shadow-sm" />
           <h2 className="text-[22px] sm:text-[26px] font-barlow font-bold text-center text-[#5c292c] tracking-tight">
-            Kattalaitharar Registration
+            New Nithiya Kattalai Registration
           </h2>
         </div>
 
@@ -425,7 +425,7 @@ export default function Signup() {
             
           {/* Left Column: Date & Slot Picker */}
           <div className="w-full lg:w-[38%] flex flex-col gap-4 bg-white/90 p-4 sm:p-5 rounded-[20px] sm:rounded-[22px] border border-[#e8ded2] shadow-sm">
-            <label className="block text-[#5c292c] font-bold text-[14px]">1. Select Booking Date</label>
+            <label className="block text-[#5c292c] font-bold text-[14px]">1. Select Nithiya Kattalai Date</label>
             <div className="flex">
               <input 
                 type="date" 
@@ -735,15 +735,10 @@ export default function Signup() {
                     ? 'bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow cursor-pointer active:scale-[0.99]' 
                     : 'bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow cursor-pointer'
                 }`}
-                title={isFormValid ? "Click to proceed to Tamil details & payment" : "Please select date, slot, and fill all required fields to register"}
+                title={isFormValid ? "Click to proceed to Tamil details & payment" : "Fill required fields to proceed"}
               >
-                Register
+                Register Nithiya Kattalai
               </button>
-              {!isFormValid && (
-                <p className="text-center text-[12px] text-[#8c7b70] mt-1.5 font-medium">
-                  * Please select date, slot, and fill all required details to register
-                </p>
-              )}
             </div>
 
           </div>

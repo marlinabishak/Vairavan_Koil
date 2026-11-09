@@ -658,10 +658,10 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
           {!showTransferModal ? (
             <div className="w-full flex flex-col gap-2.5">
             
-            {/* Header: New Booking / Edit Booking on Left, Office Code on Right */}
+            {/* Header: New Nithiya Kattalai / Edit Nithiya Kattalai on Left, Office Code on Right */}
             <div className="flex items-center justify-between px-1 pb-1 border-b border-[#ebdccb]/60 mb-1">
               <h3 className="text-[17px] sm:text-[18px] font-bold text-[#5c292c] font-barlow tracking-wide">
-                {existingBooking ? 'Edit Booking' : 'New Booking'}
+                {existingBooking ? 'Edit Nithiya Kattalai' : 'New Nithiya Kattalai'}
               </h3>
               <div className="flex items-center gap-2">
                 {form.code && (
@@ -986,11 +986,11 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
             {editRequestStatus === 'pending' && (
               <p className="text-[#d97706] text-[13px] text-center font-medium flex items-center justify-center gap-1">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                Edit Request Pending Admin Approval
+                Request to Edit Nithiya Kattalai is Pending Admin Approval
               </p>
             )}
 
-            {/* Row 7: Action Buttons: Cancel, Transfer (if eligible), & Register / Update */}
+            {/* Row 7: Action Buttons: Cancel, Transfer (if eligible), & Register Nithiya Kattalai / Update */}
             <div className="flex flex-wrap items-center justify-center gap-3 mt-3 pt-1 pb-1">
               <button
                 type="button"
@@ -1005,12 +1005,12 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                   onClick={handleInitiateDelete}
                   disabled={deleteInitiating}
                   className="flex items-center justify-center gap-1.5 font-barlow font-semibold text-[14px] bg-red-50 text-red-700 border border-red-300 hover:bg-red-100 transition-all px-4 sm:px-5 h-[38px] rounded-full shadow-sm cursor-pointer active:scale-[0.99] disabled:opacity-50"
-                  title="Super Admin: Delete Kattalai (Requires President, Treasurer, Secretary WhatsApp OTPs)"
+                  title="Super Admin: Delete Nithiya Kattalai (Requires President, Treasurer, Secretary WhatsApp OTPs)"
                 >
                   <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
-                  {deleteInitiating ? 'Sending OTPs...' : 'Delete Kattalai'}
+                  {deleteInitiating ? 'Sending OTPs...' : 'Delete Nithiya Kattalai'}
                 </button>
               )}
               {isEligibleForTransfer && (
@@ -1031,9 +1031,9 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 onClick={handlePayNow}
                 disabled={saving}
                 className="flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-8 h-[38px] rounded-full shadow-sm bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow cursor-pointer active:scale-[0.99]"
-                title={isFormValid ? (existingBooking ? "Update Details" : "Pay") : "Please fill all required fields to proceed"}
+                title={isFormValid ? (existingBooking ? "Update Nithiya Kattalai" : "Register Nithiya Kattalai") : "Fill required fields to proceed"}
               >
-                {saving ? 'Saving...' : (existingBooking ? 'Update Details' : 'Pay')}
+                {saving ? 'Saving...' : (existingBooking ? 'Update Nithiya Kattalai' : 'Register Nithiya Kattalai')}
               </button>
             </div>
           </div>
@@ -1274,7 +1274,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-red-900 tracking-tight">
-                    Authorize Kattalai Deletion
+                    Authorize Nithiya Kattalai Deletion
                   </h3>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs bg-white text-[#5c292c] font-bold px-2 py-0.5 rounded border border-[#ebdccb]">
@@ -1300,7 +1300,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
 
             {/* Instruction Notice */}
             <div className="bg-red-50/70 border border-red-200 rounded-[16px] p-3 text-xs text-red-900 leading-relaxed">
-              <strong>Triple-Party Verification:</strong> 3 distinct 6-digit random OTPs have been sent via WhatsApp to the registered leadership team. All 3 must match to permanently delete this Kattalai.
+              <strong>Triple-Party Verification:</strong> 3 distinct 6-digit random OTPs have been sent via WhatsApp to the registered leadership team. All 3 must match to permanently delete this Nithiya Kattalai.
               <div className="mt-1 font-semibold text-red-800">⏱ Valid for 1 Hour (60 minutes).</div>
             </div>
 

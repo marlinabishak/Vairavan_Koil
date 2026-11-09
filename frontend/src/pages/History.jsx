@@ -433,18 +433,18 @@ function analyzeHistoryLog(log) {
   if (action === 'Created Booking' || action.includes('Register') || action.includes('Sign Up')) {
     return {
       category: 'registrations',
-      tableBadge: { text: 'New Registration', color: 'emerald' },
+      tableBadge: { text: 'New Nithiya Kattalai', color: 'emerald' },
       tableSummary: (
         <span className="truncate">
-          Registered devotee <strong className="text-gray-900 font-semibold">{devoteeName || 'Devotee'}</strong> ({devoteeCode || 'New'})
+          Registered Nithiya Kattalai for <strong className="text-gray-900 font-semibold">{devoteeName || 'Devotee'}</strong> ({devoteeCode || 'New'})
         </span>
       ),
       modal: {
         actor: { name: userName, role: userRole, username: userLogin },
-        target: { name: devoteeName || 'New Devotee', code: devoteeCode || 'New Registration' },
+        target: { name: devoteeName || 'New Devotee', code: devoteeCode || 'New Nithiya Kattalai' },
         changeInfo: {
           type: 'info',
-          title: 'Kattalai Registration Created',
+          title: 'Nithiya Kattalai Registration Created',
           badge: 'Registered',
           badgeColor: 'emerald',
           mainText: details,

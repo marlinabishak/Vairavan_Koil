@@ -287,12 +287,12 @@ export default function Dashboard() {
 
   function handleEdit(booking) {
     if (!user || (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'user')) {
-      alert("Only admin/superadmin can edit booking details.");
+      alert("Only admin/superadmin can edit Nithiya Kattalai details.");
       return;
     }
     // Devotees can only edit their own booking
     if (user.role === 'user' && booking.id !== user.id) {
-      alert("You can only edit your own details.");
+      alert("You can only edit your own Nithiya Kattalai details.");
       return;
     }
     setEditBooking(booking);
