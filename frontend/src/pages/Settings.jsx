@@ -10,20 +10,26 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState('title');
   const [newValue, setNewValue] = useState('');
   const [transferAmountInput, setTransferAmountInput] = useState('3500');
+  const [archanaiAmountInput, setArchanaiAmountInput] = useState('200');
+  const [kattalaiBaseAmountInput, setKattalaiBaseAmountInput] = useState('3500');
   const [settingSavedMsg, setSettingSavedMsg] = useState('');
   const [savingSetting, setSavingSetting] = useState(false);
+  const [kattalaiSettingSavedMsg, setKattalaiSettingSavedMsg] = useState('');
+  const [savingKattalaiSetting, setSavingKattalaiSetting] = useState(false);
 
   const loadOptions = async () => {
     try {
       const [data, kTypes, sysSettings] = await Promise.all([
         api.getDropdownOptions(),
         api.getKattalaiTypes(),
-        api.getSettings().catch(() => ({ transfer_base_amount: '3500' }))
+        api.getSettings().catch(() => ({ transfer_base_amount: '3500', archanai_fee: '200', kattalai_base_amount: '3500' }))
       ]);
       setOptions(data);
       setKattalaiTypes(kTypes);
-      if (sysSettings && sysSettings.transfer_base_amount) {
-        setTransferAmountInput(sysSettings.transfer_base_amount);
+      if (sysSettings) {
+        if (sysSettings.transfer_base_amount) setTransferAmountInput(sysSettings.transfer_base_amount);
+        if (sysSettings.archanai_fee) setArchanaiAmountInput(sysSettings.archanai_fee);
+        if (sysSettings.kattalai_base_amount) setKattalaiBaseAmountInput(sysSettings.kattalai_base_amount);
       }
     } catch (err) {
       console.error(err);
@@ -49,6 +55,30 @@ export default function Settings() {
       alert('Failed to update transfer setting: ' + err.message);
     } finally {
       setSavingSetting(false);
+    }
+  };
+
+  const handleSaveKattalaiSetting = async (e) => {
+    e.preventDefault();
+    const parsedBase = parseFloat(kattalaiBaseAmountInput);
+    const parsedArch = parseFloat(archanaiAmountInput);
+    if (isNaN(parsedBase) || parsedBase < 0 || isNaN(parsedArch) || parsedArch < 0) {
+      alert('Please enter valid positive amounts');
+      return;
+    }
+    setSavingKattalaiSetting(true);
+    try {
+      await Promise.all([
+        api.updateSetting('kattalai_base_amount', parsedBase),
+        api.updateSetting('archanai_fee', parsedArch)
+      ]);
+      setKattalaiSettingSavedMsg('Nithiya Kattalai fees updated successfully!');
+      setTimeout(() => setKattalaiSettingSavedMsg(''), 3500);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update kattalai fee settings: ' + err.message);
+    } finally {
+      setSavingKattalaiSetting(false);
     }
   };
 
@@ -183,10 +213,10 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Account Transfer Settings Section (Prominently placed at the top) */}
+        {/* Account Transfer Fee Section */}
         <div className="bg-white rounded-[22px] shadow-sm border border-[#ebdccb] p-5 sm:p-6 mb-6">
           <div className="flex items-center justify-between gap-3 mb-4">
-            <h2 className="text-lg sm:text-xl font-bold text-[#5c292c]">1-Time Account Transfer Settings</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-[#5c292c]">Account Transfer Fee</h2>
             {settingSavedMsg && (
               <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full animate-fade-in">
                 ✓ {settingSavedMsg}
@@ -214,10 +244,78 @@ export default function Settings() {
             <button
               type="submit"
               disabled={savingSetting}
-              className="sm:self-end h-[38px] px-6 rounded-full bg-[#5c292c] hover:bg-[#482022] text-white font-semibold text-xs sm:text-sm transition-all shadow-sm shrink-0 disabled:opacity-50"
+              className="sm:self-end h-[38px] px-6 rounded-full bg-[#5c292c] hover:bg-[#482022] text-white font-semibold text-xs sm:text-sm transition-all shadow-sm shrink-0 disabled:opacity-50 cursor-pointer"
             >
               {savingSetting ? 'Saving...' : 'Save Transfer Fee'}
             </button>
+          </form>
+        </div>
+
+        {/* Nithiya Kattalai Registration & Archanai Fee Section */}
+        <div className="bg-white rounded-[22px] shadow-sm border border-[#ebdccb] p-5 sm:p-6 mb-6">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-[#5c292c]">Nithiya Kattalai Registration & Archanai Fee</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Configure default base endowment amount and 1st-year archanai charge.</p>
+            </div>
+            {kattalaiSettingSavedMsg && (
+              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full animate-fade-in shrink-0">
+                ✓ {kattalaiSettingSavedMsg}
+              </span>
+            )}
+          </div>
+
+          <form onSubmit={handleSaveKattalaiSetting} className="flex flex-col gap-3 bg-[#faf8f7] p-4 rounded-[18px] border border-[#ebdccb]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-[#5c292c] mb-1">Default Base Fee (₹)</label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₹</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={kattalaiBaseAmountInput}
+                    onChange={(e) => setKattalaiBaseAmountInput(e.target.value)}
+                    placeholder="3500"
+                    className="w-full h-[38px] pl-8 pr-4 rounded-full border border-[#e2d8cb] bg-white text-sm font-bold text-[#5c292c] focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c]"
+                    required
+                  />
+                </div>
+                <span className="text-[11px] text-gray-500 mt-1 block">Endowment deposit for new registrations</span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#5c292c] mb-1">Archanai Charge (&le; 6 Months) (₹)</label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₹</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={archanaiAmountInput}
+                    onChange={(e) => setArchanaiAmountInput(e.target.value)}
+                    placeholder="200"
+                    className="w-full h-[38px] pl-8 pr-4 rounded-full border border-[#e2d8cb] bg-white text-sm font-bold text-[#5c292c] focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c]"
+                    required
+                  />
+                </div>
+                <span className="text-[11px] text-gray-500 mt-1 block">Applied when kattalai date is &le; 6 months away</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-2 border-t border-[#ebdccb]/60 gap-3">
+              <span className="text-xs text-[#786c62] italic">
+                * If a devotee's chosen date is within 6 months, they pay Base + Archanai (₹{(parseFloat(kattalaiBaseAmountInput || 0) + parseFloat(archanaiAmountInput || 0)).toLocaleString('en-IN')}). Beyond 6 months, archanai is waived (₹{parseFloat(kattalaiBaseAmountInput || 0).toLocaleString('en-IN')}).
+              </span>
+              <button
+                type="submit"
+                disabled={savingKattalaiSetting}
+                className="self-end sm:self-auto h-[38px] px-6 rounded-full bg-[#5c292c] hover:bg-[#482022] text-white font-semibold text-xs sm:text-sm transition-all shadow-sm shrink-0 disabled:opacity-50 cursor-pointer"
+              >
+                {savingKattalaiSetting ? 'Saving...' : 'Save Kattalai Fees'}
+              </button>
+            </div>
           </form>
         </div>
 

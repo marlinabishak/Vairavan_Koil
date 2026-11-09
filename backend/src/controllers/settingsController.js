@@ -8,9 +8,15 @@ async function getSettings(req, res) {
     rows.forEach(r => {
       settingsMap[r.setting_key] = r.setting_value;
     });
-    // Ensure default transfer_base_amount is present
+    // Ensure default system settings are present
     if (!settingsMap.transfer_base_amount) {
       settingsMap.transfer_base_amount = '3500';
+    }
+    if (!settingsMap.kattalai_base_amount) {
+      settingsMap.kattalai_base_amount = '3500';
+    }
+    if (!settingsMap.archanai_fee) {
+      settingsMap.archanai_fee = '200';
     }
     res.json(settingsMap);
   } catch (err) {
@@ -31,10 +37,10 @@ async function updateSetting(req, res) {
       return res.status(400).json({ error: 'Key and value are required' });
     }
 
-    if (key === 'transfer_base_amount') {
+    if (key === 'transfer_base_amount' || key === 'kattalai_base_amount' || key === 'archanai_fee') {
       const num = parseFloat(value);
       if (isNaN(num) || num < 0) {
-        return res.status(400).json({ error: 'Transfer base amount must be a positive number' });
+        return res.status(400).json({ error: `${key} must be a positive number` });
       }
     }
 

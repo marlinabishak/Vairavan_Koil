@@ -479,6 +479,31 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
             />
           </div>
 
+          {/* Registration Fee Summary Banner */}
+          {englishData?.amount && (
+            <div className="bg-[#fcfaf7] border border-[#ebdccb] rounded-[16px] p-3 text-xs font-barlow text-[#5c292c] flex flex-col gap-1.5 shadow-xs">
+              <div className="flex justify-between items-center font-bold text-[13px] border-b border-[#ebdccb]/60 pb-1">
+                <span>Registration Fee Payable</span>
+                <span className="text-[15px] font-extrabold text-[#5c292c]">₹{parseFloat(englishData.amount).toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between items-center text-gray-600 text-[11.5px]">
+                <span>Base Endowment Deposit:</span>
+                <span className="font-semibold text-gray-800">₹{(englishData.baseAmount || 3500).toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between items-center text-[11.5px]">
+                <span className="flex items-center gap-1.5">
+                  1st-Year Archanai Charge:
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${englishData.isWithinSixMonths ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                    {englishData.isWithinSixMonths ? 'Within 6 Months' : 'Waived (> 6 Mos)'}
+                  </span>
+                </span>
+                <span className="font-semibold text-gray-800">
+                  {englishData.isWithinSixMonths ? `+₹${(englishData.archanaiCharge || 200).toLocaleString('en-IN')}` : '₹0'}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Validation Banner if errors exist */}
           {Object.keys(errors).length > 0 && (
             <div className="flex items-center justify-center gap-1.5 text-red-600 text-[12px] font-barlow font-medium bg-red-50/90 py-1.5 px-3.5 rounded-full border border-red-200 self-center mt-0.5">
@@ -499,9 +524,9 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
             <button
               type="submit"
               className="flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-9 h-[38px] rounded-full shadow-md bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow-lg cursor-pointer active:scale-[0.99]"
-              title={initialData ? "Update Details" : "Pay"}
+              title={initialData?.name_ta ? "Update Details" : "Pay"}
             >
-              {initialData ? "Update Details" : "Pay"}
+              {initialData?.name_ta ? "Update Details" : (englishData?.amount ? `Pay ₹${parseFloat(englishData.amount).toLocaleString('en-IN')}` : "Pay")}
             </button>
           </div>
         </form>

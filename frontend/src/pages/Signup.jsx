@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../api/client.js';
 import TamilDetailsModal from '../components/TamilDetailsModal.jsx';
 import Combobox from '../components/Combobox.jsx';
 import { COUNTRY_CODES } from '../components/BookingModal.jsx';
+import { calculateKattalaiFee } from '../utils/kattalaiFee.js';
 
 function getDayOfYear(dateString) {
   if (!dateString) return 0;
@@ -70,6 +71,19 @@ export default function Signup() {
     kat_type: DEFAULT_OPTIONS.kat_type 
   });
   const [showTamilModal, setShowTamilModal] = useState(false);
+  const [feeSettings, setFeeSettings] = useState({
+    baseAmount: 3500,
+    archanaiFee: 200
+  });
+
+  const feeDetails = useMemo(() => {
+    return calculateKattalaiFee({
+      kattalaiDate: selectedBookingDate,
+      regnDate: formData.regn_date,
+      baseAmount: feeSettings.baseAmount,
+      archanaiFee: feeSettings.archanaiFee
+    });
+  }, [selectedBookingDate, formData.regn_date, feeSettings]);
 
   useEffect(() => {
     api.getKattalaiTypes().then((types) => {
@@ -105,6 +119,15 @@ export default function Signup() {
       console.error(err);
       setDropdowns(DEFAULT_OPTIONS);
     });
+
+    api.getSettings().then(s => {
+      if (s) {
+        setFeeSettings({
+          baseAmount: s.kattalai_base_amount ? parseFloat(s.kattalai_base_amount) : 3500,
+          archanaiFee: s.archanai_fee ? parseFloat(s.archanai_fee) : 200
+        });
+      }
+    }).catch(console.error);
   }, []);
 
   // Fetch bookings whenever the selected calendar date changes
@@ -253,11 +276,9 @@ export default function Signup() {
       }
       bookingData.kattalai_type_id = selectedTypeId;
 
-      const selectedType = kattalaiTypes.find(t => t.id === bookingData.kattalai_type_id);
-      const defaultAmt = selectedType?.default_amount ? parseFloat(selectedType.default_amount) : 0;
       const amountToPay = (tamilData.amount !== undefined && tamilData.amount !== '') 
         ? parseFloat(tamilData.amount) 
-        : defaultAmt;
+        : feeDetails.totalAmount;
 
       bookingData.amount = amountToPay;
       bookingData.comments = tamilData.comments || '';
@@ -453,6 +474,33 @@ export default function Signup() {
                 Selected Code: <span className="text-[15px] sm:text-[16px] tracking-wide font-extrabold">{formData.code}</span>
               </div>
             )}
+
+            {/* Registration Fee Summary Card */}
+            <div className="bg-[#faf7f2] border border-[#e4d7c7] rounded-[18px] p-3 sm:p-3.5 flex flex-col gap-2 mt-2 shadow-xs">
+              <div className="flex justify-between items-center text-[#5c292c] font-bold text-[13px] border-b border-[#e8ded2] pb-1.5">
+                <span>Registration Fee</span>
+                <span className="text-[16px] font-extrabold text-[#5c292c]">
+                  ₹{feeDetails.totalAmount.toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-xs text-[#786c62]">
+                <span>Base Endowment Deposit:</span>
+                <span className="font-semibold text-[#5c292c]">₹{feeDetails.baseAmount.toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-[#786c62] flex items-center gap-1.5">
+                  1st-Year Archanai:
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
+                    feeDetails.isWithinSixMonths ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                  }`}>
+                    {feeDetails.isWithinSixMonths ? 'Within 6 Mos' : 'Waived (> 6 Mos)'}
+                  </span>
+                </span>
+                <span className={`font-semibold ${feeDetails.isWithinSixMonths ? 'text-[#f37435]' : 'text-emerald-700'}`}>
+                  {feeDetails.isWithinSixMonths ? `+₹${feeDetails.archanaiCharge.toLocaleString('en-IN')}` : '₹0'}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Right Column: Details */}
@@ -737,7 +785,7 @@ export default function Signup() {
                 }`}
                 title={isFormValid ? "Click to proceed to Tamil details & payment" : "Fill required fields to proceed"}
               >
-                Register Nithiya Kattalai
+                Register Nithiya Kattalai • ₹{feeDetails.totalAmount.toLocaleString('en-IN')}
               </button>
             </div>
 
@@ -758,7 +806,10 @@ export default function Signup() {
           initialData={{}}
           englishData={{
             ...formData,
-            amount: kattalaiTypes.find(t => t.id === formData.kattalai_type_id)?.default_amount || ''
+            amount: feeDetails.totalAmount,
+            baseAmount: feeDetails.baseAmount,
+            archanaiCharge: feeDetails.archanaiCharge,
+            isWithinSixMonths: feeDetails.isWithinSixMonths
           }}
         />
       </div>

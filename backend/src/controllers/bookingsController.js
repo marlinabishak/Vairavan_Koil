@@ -213,7 +213,34 @@ async function createBooking(req, res) {
     return res.status(400).json({ error: 'kattalai_type_id, kattalai_date, kattalai_month and name are required' });
   }
 
-  const id = uuidv4();
+  let finalAmount = (amount !== undefined && amount !== null && amount !== '') ? parseFloat(amount) : null;
+  if (finalAmount === null || isNaN(finalAmount)) {
+    try {
+      const { rows: sRows } = await pool.query(
+        "SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('kattalai_base_amount', 'archanai_fee')"
+      );
+      let base = 3500;
+      let arch = 200;
+      sRows.forEach(r => {
+        if (r.setting_key === 'kattalai_base_amount') base = parseFloat(r.setting_value) || 3500;
+        if (r.setting_key === 'archanai_fee') arch = parseFloat(r.setting_value) || 200;
+      });
+      const reg = regn_date ? new Date(regn_date) : new Date();
+      reg.setHours(0, 0, 0, 0);
+      let target = new Date(reg.getFullYear(), parseInt(kattalai_month, 10) - 1, parseInt(kattalai_date, 10));
+      target.setHours(0, 0, 0, 0);
+      if (target < reg) {
+        target = new Date(reg.getFullYear() + 1, parseInt(kattalai_month, 10) - 1, parseInt(kattalai_date, 10));
+        target.setHours(0, 0, 0, 0);
+      }
+      const sixMonths = new Date(reg);
+      sixMonths.setMonth(sixMonths.getMonth() + 6);
+      sixMonths.setHours(23, 59, 59, 999);
+      finalAmount = target <= sixMonths ? (base + arch) : base;
+    } catch {
+      finalAmount = 3500;
+    }
+  }
 
   try {
     await pool.query(
@@ -229,7 +256,7 @@ async function createBooking(req, res) {
         id, kattalai_type_id, kattalai_date, kattalai_month, title || '', name || '', star || '', place || '', code || '', mobile || '',
         whatsapp_number || mobile || '', whatsapp_same_as_mobile ?? true, email || '', 
         per_add_1 || '', per_add_2 || '', per_add_3 || '', comm_add_1 || '', comm_add_2 || '', comm_add_3 || '', comm_add_4 || '',
-        amount || 0, country_code || '91', kat_type || '', regn_date || null,
+        finalAmount || 0, country_code || '91', kat_type || '', regn_date || null,
         title_ta || '', name_ta || '', star_ta || '', place_ta || '', req.body.comments || '',
         req.user?.id || req.body.created_by || null
       ]

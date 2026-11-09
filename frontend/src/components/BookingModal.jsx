@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext';
 import TamilDetailsModal from './TamilDetailsModal.jsx';
+import { calculateKattalaiFee } from '../utils/kattalaiFee.js';
 
 export const COUNTRY_CODES = [
   { code: '91', name: 'India', flag: '🇮🇳' },
@@ -143,6 +144,31 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
   const [dropdowns, setDropdowns] = useState({ title: [], star: [], place: [], kat_type: ['Lifetime', 'Inheritance'] });
   const [showTamilModal, setShowTamilModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [feeSettings, setFeeSettings] = useState({
+    baseAmount: 3500,
+    archanaiFee: 200
+  });
+
+  const dynamicFee = useMemo(() => {
+    if (existingBooking) return null;
+    return calculateKattalaiFee({
+      kattalaiDate: form.booking_date || date,
+      regnDate: new Date(),
+      baseAmount: feeSettings.baseAmount,
+      archanaiFee: feeSettings.archanaiFee
+    });
+  }, [existingBooking, form.booking_date, date, feeSettings]);
+
+  useEffect(() => {
+    if (!existingBooking && dynamicFee) {
+      setForm(prev => {
+        if (!prev.amount || prev.amount === '1000' || prev.amount === '0' || prev.amount === '3500' || prev.amount === '3700') {
+          return { ...prev, amount: dynamicFee.totalAmount };
+        }
+        return prev;
+      });
+    }
+  }, [dynamicFee, existingBooking]);
   const [transferBaseRate, setTransferBaseRate] = useState(3500);
   const [transferring, setTransferring] = useState(false);
   const [transferError, setTransferError] = useState(null);
@@ -240,9 +266,15 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
     }).catch(console.error);
 
     api.getSettings().then(s => {
-      if (s && s.transfer_base_amount) {
-        const val = parseFloat(s.transfer_base_amount);
-        if (!isNaN(val)) setTransferBaseRate(val);
+      if (s) {
+        if (s.transfer_base_amount) {
+          const val = parseFloat(s.transfer_base_amount);
+          if (!isNaN(val)) setTransferBaseRate(val);
+        }
+        setFeeSettings({
+          baseAmount: s.kattalai_base_amount ? parseFloat(s.kattalai_base_amount) : 3500,
+          archanaiFee: s.archanai_fee ? parseFloat(s.archanai_fee) : 200
+        });
       }
     }).catch(console.error);
   }, []);
@@ -962,6 +994,11 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                       onChange={set('amount')}
                       title="Initial Payment Amount"
                     />
+                    {dynamicFee && (
+                      <span className="text-[10px] text-[#786c62] mt-0.5 px-1 block truncate" title={dynamicFee.isWithinSixMonths ? `Base ₹${dynamicFee.baseAmount} + Archanai ₹${dynamicFee.archanaiCharge} (Date within 6 months)` : `Base ₹${dynamicFee.baseAmount} (Archanai waived - Date > 6 months)`}>
+                        {dynamicFee.isWithinSixMonths ? `₹${dynamicFee.baseAmount} + ₹${dynamicFee.archanaiCharge} Arch.` : `₹${dynamicFee.baseAmount} (Waived)`}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
