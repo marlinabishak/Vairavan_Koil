@@ -8,13 +8,10 @@ async function getSettings(req, res) {
     rows.forEach(r => {
       settingsMap[r.setting_key] = r.setting_value;
     });
-    // Ensure default system settings are present
-    if (!settingsMap.transfer_base_amount) {
-      settingsMap.transfer_base_amount = '3500';
-    }
-    if (!settingsMap.kattalai_base_amount) {
-      settingsMap.kattalai_base_amount = '3500';
-    }
+    // Ensure default system settings are present and synchronized
+    const baseAmount = settingsMap.kattalai_base_amount || settingsMap.transfer_base_amount || '3500';
+    settingsMap.kattalai_base_amount = baseAmount;
+    settingsMap.transfer_base_amount = baseAmount;
     if (!settingsMap.archanai_fee) {
       settingsMap.archanai_fee = '200';
     }
@@ -50,6 +47,17 @@ async function updateSetting(req, res) {
        ON DUPLICATE KEY UPDATE setting_value = $3`,
       [key, String(value), String(value)]
     );
+
+    // Keep base endowment fee in sync between registration and transfer calculation
+    if (key === 'kattalai_base_amount' || key === 'transfer_base_amount') {
+      const otherKey = key === 'kattalai_base_amount' ? 'transfer_base_amount' : 'kattalai_base_amount';
+      await pool.query(
+        `INSERT INTO system_settings (setting_key, setting_value) 
+         VALUES ($1, $2)
+         ON DUPLICATE KEY UPDATE setting_value = $3`,
+        [otherKey, String(value), String(value)]
+      );
+    }
 
     res.json({ success: true, key, value });
   } catch (err) {
