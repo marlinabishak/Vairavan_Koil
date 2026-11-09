@@ -751,9 +751,9 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
 
             {/* Row 1: Title & Name */}
             <div className="flex gap-2.5 relative">
-              <div className="relative w-[110px] shrink-0">
+              <div className="relative w-[138px] shrink-0">
                 <select 
-                  className={`${selectClass} ${isLockedForUser ? 'pr-9' : ''}`}
+                  className={`${selectClass} pl-3.5 pr-7 ${isLockedForUser ? 'pr-9' : ''}`}
                   value={form.title || ''}
                   onChange={set('title')}
                   disabled={isLockedForUser}

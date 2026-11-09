@@ -324,9 +324,9 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 mt-1">
-          {/* Row 1: Title & Full Name (Exact 110px dropdown + flex-1 matching English Row 1!) */}
+          {/* Row 1: Title & Full Name */}
           <div className="flex gap-2.5">
-            <div className="w-[100px] sm:w-[110px] shrink-0">
+            <div className="w-[125px] sm:w-[138px] shrink-0">
               <label className="flex items-center justify-between text-[#5c292c] font-barlow font-semibold text-[12px] sm:text-[12.5px] mb-1 px-1">
                 <span>Title (தமிழ்) <span className="text-red-500">*</span></span>
               </label>

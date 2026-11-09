@@ -165,6 +165,7 @@ async function getBooking(req, res) {
 // POST /api/bookings
 async function createBooking(req, res) {
   const { v4: uuidv4 } = require('uuid');
+  const id = req.body.id || uuidv4();
   let {
     kattalai_type_id, kattalai_date, kattalai_month, title, name, star, place, code,
     mobile, whatsapp_number, whatsapp_same_as_mobile, email, 
