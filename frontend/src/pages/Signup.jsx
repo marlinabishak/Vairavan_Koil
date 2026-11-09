@@ -546,19 +546,13 @@ export default function Signup() {
                   />
                 </div>
 
-                {/* Sponsorship */}
+                {/* Sponsorship (Fixed as Lifetime) */}
                 <div className="relative w-full h-[42px] z-20">
-                  <select
-                    className={`${inputClass} appearance-none h-full bg-white pr-8 text-gray-700 cursor-pointer`}
-                    value={formData.kat_type || ''}
-                    onChange={(e) => setFormData(f => ({ ...f, kat_type: e.target.value }))}
-                    required
+                  <div 
+                    className="h-full px-4 rounded-full border border-dashed border-[#c7b0a4] bg-white font-barlow text-[14px] font-bold text-[#5c292c] flex items-center justify-center shadow-xs cursor-default select-none"
+                    title="Sponsorship Type: Lifetime (Fixed for new registrations)"
                   >
-                    <option value="" disabled>Sponsorship</option>
-                    {dropdowns.kat_type.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
-                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-[#8c8075]">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                    <span>Lifetime</span>
                   </div>
                 </div>
 
@@ -679,19 +673,11 @@ export default function Signup() {
                   />
 
                   <div className="relative w-[28%] h-full">
-                    <select
-                      className={`${inputClass} appearance-none h-full bg-white pr-8 text-gray-700 cursor-pointer`}
-                      value={formData.kat_type || 'Lifetime'}
-                      onChange={(e) => setFormData(f => ({ ...f, kat_type: e.target.value }))}
+                    <div 
+                      className="h-full px-3.5 rounded-full border border-dashed border-[#c7b0a4] bg-white font-barlow text-xs sm:text-[13.5px] font-bold text-[#5c292c] flex items-center justify-center shadow-xs cursor-default select-none"
+                      title="Sponsorship Type: Lifetime (Fixed for new registrations)"
                     >
-                      <option value="Lifetime">Lifetime</option>
-                      <option value="Inheritance">Inheritance</option>
-                      {dropdowns.kat_type && dropdowns.kat_type.filter(opt => opt !== 'Lifetime' && opt !== 'Inheritance').map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#8c8075]">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                      <span>Lifetime</span>
                     </div>
                   </div>
 

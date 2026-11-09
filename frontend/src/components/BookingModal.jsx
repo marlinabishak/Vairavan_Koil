@@ -78,6 +78,25 @@ function getDayOfYear(dateObj) {
   return Math.floor(diff / oneDay);
 }
 
+function formatDateDDMMYYYY(val) {
+  if (!val) return '—';
+  if (typeof val === 'string' && val.includes('-')) {
+    const clean = val.split('T')[0];
+    const parts = clean.split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2].padStart(2, '0')}-${parts[1].padStart(2, '0')}-${parts[0]}`;
+    }
+  }
+  const d = new Date(val);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
+  return String(val);
+}
+
 /**
  * Booking / payment form matching Figma design aesthetics (warm cream card, pill inputs, inline slots, single-page view).
  */
@@ -131,7 +150,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
       ...emptyForm,
       kattalai_type_id: kattalaiType?.id || '',
       booking_date: date ? new Date(date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
-      amount: kattalaiType?.default_amount || '',
+      amount: 3500,
       code: autoCode,
       kat_type: 'Lifetime',
       comments: '',
@@ -161,12 +180,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
 
   useEffect(() => {
     if (!existingBooking && dynamicFee) {
-      setForm(prev => {
-        if (!prev.amount || prev.amount === '1000' || prev.amount === '0' || prev.amount === '3500' || prev.amount === '3700') {
-          return { ...prev, amount: dynamicFee.totalAmount };
-        }
-        return prev;
-      });
+      setForm(prev => ({ ...prev, amount: dynamicFee.totalAmount }));
     }
   }, [dynamicFee, existingBooking]);
   const [transferBaseRate, setTransferBaseRate] = useState(3500);
@@ -905,48 +919,49 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 />
               </div>
 
-              {/* 4. Sponsorship Type */}
+              {/* 4. Sponsorship Type (Fixed as Lifetime for new registrations) */}
               <div className="relative">
-                <select 
-                  className={`${selectClass} ${isLockedForUser || isAlreadyTransferred ? 'pr-9 opacity-80 cursor-not-allowed bg-[#f7f2ea]' : ''}`}
-                  value={form.kat_type || ''}
-                  onChange={set('kat_type')}
-                  disabled={isLockedForUser || isAlreadyTransferred}
-                  title={isAlreadyTransferred ? "Transferred account is permanently set to Inheritance" : "Sponsorship Type"}
-                >
-                  <option value="" disabled>Sponsorship</option>
-                  {dropdowns.kat_type.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[#8c8075]">
-                  {!isLockedForUser && !isAlreadyTransferred && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>}
-                </div>
-                {(isLockedForUser || isAlreadyTransferred) && (
-                  <LockIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#f37435]" />
+                {!existingBooking ? (
+                  <div 
+                    className="h-[38px] px-4 rounded-full border border-dashed border-[#c7b0a4] bg-white font-barlow text-xs sm:text-[13.5px] font-bold text-[#5c292c] flex items-center justify-center shadow-xs cursor-default select-none"
+                    title="Sponsorship Type: Lifetime (Fixed for new registrations)"
+                  >
+                    <span>Lifetime</span>
+                  </div>
+                ) : (
+                  <>
+                    <select 
+                      className={`${selectClass} ${isLockedForUser || isAlreadyTransferred ? 'pr-9 opacity-80 cursor-not-allowed bg-[#f7f2ea]' : ''}`}
+                      value={form.kat_type || 'Lifetime'}
+                      onChange={set('kat_type')}
+                      disabled={isLockedForUser || isAlreadyTransferred}
+                      title={isAlreadyTransferred ? "Transferred account is permanently set to Inheritance" : "Sponsorship Type"}
+                    >
+                      <option value="" disabled>Sponsorship</option>
+                      {dropdowns.kat_type.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[#8c8075]">
+                      {!isLockedForUser && !isAlreadyTransferred && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>}
+                    </div>
+                    {(isLockedForUser || isAlreadyTransferred) && (
+                      <LockIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#f37435]" />
+                    )}
+                  </>
                 )}
               </div>
             </div>
 
             {/* Row 5: Date of Registration, Office Code, Date of Transfer, Balance (Payment in DB) */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 relative items-center">
-              {/* 1. Date of Registration (Fixed DB value for Edit, Datepicker for New) */}
+              {/* 1. Date of Registration (Fixed like Office Code) */}
               <div className="relative flex flex-col">
                 <span className="text-[10.5px] font-bold text-[#5c292c] mb-1 px-1">Date of Registration</span>
-                {existingBooking ? (
-                  <div 
-                    className="h-[38px] px-3.5 rounded-full border border-[#e2d8cb] bg-[#f9f6f0] font-barlow text-xs sm:text-[13px] font-semibold text-gray-700 flex items-center justify-center shadow-xs cursor-default"
-                    title="Date of Registration / Pooja Date recorded in Database"
-                  >
-                    <span>{existingBooking.booking_date ? new Date(existingBooking.booking_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : (formattedDate || '—')}</span>
-                  </div>
-                ) : (
-                  <input 
-                    type="date"
-                    className={`${inputClass} text-xs sm:text-[13px] font-semibold text-[#5c292c] cursor-pointer`}
-                    value={form.booking_date}
-                    onChange={set('booking_date')}
-                    title="Select Registration / Pooja Date"
-                  />
-                )}
+                <div 
+                  className="h-[38px] px-3.5 rounded-full border border-dashed border-[#c7b0a4] bg-white font-barlow text-xs sm:text-[13px] font-bold text-[#5c292c] flex items-center justify-center shadow-xs cursor-default select-none"
+                  title="Date of Registration"
+                >
+                  <span>{formatDateDDMMYYYY(existingBooking?.regn_date || form.booking_date || date)}</span>
+                </div>
               </div>
 
               {/* 2. Office Code */}
@@ -971,31 +986,20 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 </div>
               </div>
 
-              {/* 4. Balance (Payment in DB column - Fixed DB value for Edit, input for New) */}
+              {/* 4. Payment (Fixed for New Registration: full amount ₹3,500; DB value for Edit) */}
               <div className="relative flex flex-col">
-                <span className="text-[10.5px] font-bold text-[#5c292c] mb-1 px-1">Balance (Payment)</span>
-                {existingBooking ? (
-                  <div 
-                    className="h-[38px] px-3 rounded-full border border-[#ebdccb] bg-[#fdfaf5] font-barlow text-xs sm:text-[13.5px] font-extrabold text-[#5c292c] flex items-center justify-center shadow-xs cursor-default"
-                    title="Payment recorded in Database column"
-                  >
-                    <span>{form.amount !== '' && form.amount !== undefined ? `₹${parseFloat(form.amount || 0).toLocaleString('en-IN')}` : '₹0'}</span>
-                  </div>
-                ) : (
-                  <div className="relative w-full flex items-center">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-[14px] leading-none pointer-events-none select-none flex items-center">₹</span>
-                    <input 
-                      className={`${inputClass} pl-7 font-bold text-[#5c292c]`}
-                      placeholder="Amount"
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={form.amount}
-                      onChange={set('amount')}
-                      title="Initial Payment Amount"
-                    />
-                  </div>
-                )}
+                <span className="text-[10.5px] font-bold text-[#5c292c] mb-1 px-1">Payment</span>
+                <div 
+                  className="h-[38px] px-3.5 rounded-full border border-dashed border-[#c7b0a4] bg-white font-barlow text-xs sm:text-[13px] font-bold text-[#5c292c] flex items-center justify-center shadow-xs cursor-default select-none"
+                  title="Payment Amount"
+                >
+                  <span>
+                    {existingBooking 
+                      ? (form.amount !== '' && form.amount !== undefined ? `₹${parseFloat(form.amount || 0).toLocaleString('en-IN')}` : '₹0')
+                      : `₹${(dynamicFee ? dynamicFee.totalAmount : (parseFloat(form.amount) || 3500)).toLocaleString('en-IN')}`
+                    }
+                  </span>
+                </div>
               </div>
             </div>
 
