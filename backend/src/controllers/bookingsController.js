@@ -243,6 +243,19 @@ async function createBooking(req, res) {
     }
   }
 
+  // Safely resolve creatorId to an existing user ID in users table (or null for online registrations)
+  let creatorId = req.user?.id || req.body.created_by || null;
+  if (creatorId) {
+    try {
+      const { rows: uCheck } = await pool.query('SELECT id FROM users WHERE id = $1', [creatorId]);
+      if (!uCheck || uCheck.length === 0) {
+        creatorId = null;
+      }
+    } catch {
+      creatorId = null;
+    }
+  }
+
   try {
     await pool.query(
       `INSERT INTO bookings
@@ -259,14 +272,13 @@ async function createBooking(req, res) {
         per_add_1 || '', per_add_2 || '', per_add_3 || '', comm_add_1 || '', comm_add_2 || '', comm_add_3 || '', comm_add_4 || '',
         finalAmount || 0, country_code || '91', kat_type || '', regn_date || null,
         title_ta || '', name_ta || '', star_ta || '', place_ta || '', req.body.comments || '',
-        req.user?.id || req.body.created_by || null
+        creatorId
       ]
     );
 
     // Audit log
     try {
       const { v4: uuidv4 } = require('uuid');
-      const creatorId = req.user?.id || req.body.created_by || null;
       const creatorName = req.user?.name || (creatorId ? 'Staff' : 'Devotee / Online Registration');
       const creatorRole = req.user?.role || 'online';
       await pool.query(
@@ -370,7 +382,15 @@ async function updateBooking(req, res) {
     if (diffs.length > 0) {
       try {
         const { v4: uuidv4 } = require('uuid');
-        const editorId = req.user?.id || req.body.user_id || null;
+        let editorId = req.user?.id || req.body.user_id || null;
+        if (editorId) {
+          try {
+            const { rows: uCheck } = await pool.query('SELECT id FROM users WHERE id = $1', [editorId]);
+            if (!uCheck || uCheck.length === 0) editorId = null;
+          } catch {
+            editorId = null;
+          }
+        }
         const editorName = req.user?.name || req.body.user_name || (editorId ? 'Staff' : 'Devotee / User');
         const editorRole = req.user?.role || req.body.userRole || 'staff';
         const editorUsername = req.user?.email || req.body.username || '';
@@ -425,7 +445,15 @@ async function togglePresent(req, res) {
       return res.status(403).json({ error: 'Only superadmin can modify attendance beyond 5 days.' });
     }
 
-    const actualUserId = user_id || req.user?.id || null;
+    let actualUserId = user_id || req.user?.id || null;
+    if (actualUserId) {
+      try {
+        const { rows: uCheck } = await pool.query('SELECT id FROM users WHERE id = $1', [actualUserId]);
+        if (!uCheck || uCheck.length === 0) actualUserId = null;
+      } catch {
+        actualUserId = null;
+      }
+    }
     const staffName = user_name || req.user?.name || user_role || 'Staff';
 
     await pool.query(
@@ -708,12 +736,21 @@ async function transferBooking(req, res) {
     // 8. Log into history_logs
     try {
       const { v4: uuidv4 } = require('uuid');
+      let transferUserId = user_id || req.user?.id || null;
+      if (transferUserId) {
+        try {
+          const { rows: uCheck } = await pool.query('SELECT id FROM users WHERE id = $1', [transferUserId]);
+          if (!uCheck || uCheck.length === 0) transferUserId = null;
+        } catch {
+          transferUserId = null;
+        }
+      }
       await pool.query(
         `INSERT INTO history_logs (id, user_id, action, details, booking_id, created_at)
          VALUES ($1, $2, 'ACCOUNT_TRANSFER', $3, $4, CURRENT_TIMESTAMP)`,
         [
           uuidv4(),
-          user_id || req.user?.id || null,
+          transferUserId,
           `1-time account transfer from ${current.title || ''} ${current.name} to ${title || ''} ${name}. Base rate: ₹${baseTransferAmount}, Previous paid: ₹${oldPaidAmount}, Difference collected: ₹${differenceAmount}.`,
           id
         ]
