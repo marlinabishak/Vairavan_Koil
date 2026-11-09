@@ -982,8 +982,8 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                     <span>{form.amount !== '' && form.amount !== undefined ? `₹${parseFloat(form.amount || 0).toLocaleString('en-IN')}` : '₹0'}</span>
                   </div>
                 ) : (
-                  <div className="relative w-full">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">₹</span>
+                  <div className="relative w-full flex items-center">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-[14px] leading-none pointer-events-none select-none flex items-center">₹</span>
                     <input 
                       className={`${inputClass} pl-7 font-bold text-[#5c292c]`}
                       placeholder="Amount"
@@ -994,11 +994,6 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                       onChange={set('amount')}
                       title="Initial Payment Amount"
                     />
-                    {dynamicFee && (
-                      <span className="text-[10px] text-[#786c62] mt-0.5 px-1 block truncate" title={dynamicFee.isWithinSixMonths ? `Base ₹${dynamicFee.baseAmount} + Archanai ₹${dynamicFee.archanaiCharge} (Date within 6 months)` : `Base ₹${dynamicFee.baseAmount} (Archanai waived - Date > 6 months)`}>
-                        {dynamicFee.isWithinSixMonths ? `₹${dynamicFee.baseAmount} + ₹${dynamicFee.archanaiCharge} Arch.` : `₹${dynamicFee.baseAmount} (Waived)`}
-                      </span>
-                    )}
                   </div>
                 )}
               </div>

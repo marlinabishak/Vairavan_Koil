@@ -218,7 +218,6 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
   };
 
   const [formData, setFormData] = React.useState(getInitialFormData);
-  const [customPlaceMode, setCustomPlaceMode] = React.useState(false);
   const [errors, setErrors] = React.useState({});
 
   const [dbTitles, setDbTitles] = React.useState(TAMIL_TITLES);
@@ -240,12 +239,6 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
   React.useEffect(() => {
     const initial = getInitialFormData();
     setFormData(initial);
-    // If the translated place is not in the standard list, open custom mode so devotee sees it clearly
-    if (initial.place_ta && !dbPlaces.includes(initial.place_ta)) {
-      setCustomPlaceMode(true);
-    } else {
-      setCustomPlaceMode(false);
-    }
     setErrors({});
   }, [initialData, englishData, dbPlaces]);
 
@@ -411,56 +404,28 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
             <div className="w-1/2">
               <label className="flex items-center justify-between text-[#5c292c] font-barlow font-semibold text-[12px] sm:text-[12.5px] mb-1 px-1">
                 <span>Place (தமிழ்) <span className="text-red-500">*</span></span>
-                <div className="flex items-center gap-1">
-                  {englishData?.place && (
-                    <span className="text-[#786c62] text-[10.5px] sm:text-[11px] font-normal bg-[#ede4d8] px-1.5 py-0.2 rounded-full truncate max-w-[65px] sm:max-w-[80px]" title={englishData.place}>
-                      {englishData.place}
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomPlaceMode(!customPlaceMode);
-                      if (!customPlaceMode) {
-                        setFormData(prev => ({ ...prev, place_ta: '' }));
-                      }
-                    }}
-                    className="text-[10px] text-[#5c292c] font-semibold hover:underline bg-[#ebdccb]/60 px-1 py-0.5 rounded"
-                    title="Toggle between Chettinad village dropdown and custom typing"
-                  >
-                    {customPlaceMode ? "பட்டியல்" : "தட்டச்சு"}
-                  </button>
-                </div>
+                {englishData?.place && (
+                  <span className="text-[#786c62] text-[10.5px] sm:text-[11px] font-normal bg-[#ede4d8] px-1.5 py-0.2 rounded-full truncate max-w-[80px]" title={englishData.place}>
+                    {englishData.place}
+                  </span>
+                )}
               </label>
-              {customPlaceMode ? (
+              <div className="relative">
                 <input
                   type="text"
                   name="place_ta"
+                  list="tamil-places-options"
                   value={formData.place_ta}
                   onChange={handleChange}
-                  placeholder="e.g. காரைக்குடி / மற்ற ஊர்"
+                  placeholder="e.g. காரைக்குடி / சென்னை"
                   className={getInputClass(!!errors.place_ta)}
                 />
-              ) : (
-                <div className="relative">
-                  <select
-                    name="place_ta"
-                    value={formData.place_ta}
-                    onChange={handleChange}
-                    className={getSelectClass(!!errors.place_ta)}
-                  >
-                    <option value="" disabled>ஊர் தேர்வு</option>
-                    {placeOptions.map((p) => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#8c8075]">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M6 9l6 6 6-6" />
-                    </svg>
-                  </div>
-                </div>
-              )}
+                <datalist id="tamil-places-options">
+                  {placeOptions.map((p) => (
+                    <option key={p} value={p} />
+                  ))}
+                </datalist>
+              </div>
             </div>
           </div>
 
@@ -478,31 +443,6 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
               className={getInputClass(!!errors.comments)}
             />
           </div>
-
-          {/* Registration Fee Summary Banner */}
-          {englishData?.amount && (
-            <div className="bg-[#fcfaf7] border border-[#ebdccb] rounded-[16px] p-3 text-xs font-barlow text-[#5c292c] flex flex-col gap-1.5 shadow-xs">
-              <div className="flex justify-between items-center font-bold text-[13px] border-b border-[#ebdccb]/60 pb-1">
-                <span>Registration Fee Payable</span>
-                <span className="text-[15px] font-extrabold text-[#5c292c]">₹{parseFloat(englishData.amount).toLocaleString('en-IN')}</span>
-              </div>
-              <div className="flex justify-between items-center text-gray-600 text-[11.5px]">
-                <span>Base Endowment Deposit:</span>
-                <span className="font-semibold text-gray-800">₹{(englishData.baseAmount || 3500).toLocaleString('en-IN')}</span>
-              </div>
-              <div className="flex justify-between items-center text-[11.5px]">
-                <span className="flex items-center gap-1.5">
-                  1st-Year Archanai Charge:
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${englishData.isWithinSixMonths ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
-                    {englishData.isWithinSixMonths ? 'Within 6 Months' : 'Waived (> 6 Mos)'}
-                  </span>
-                </span>
-                <span className="font-semibold text-gray-800">
-                  {englishData.isWithinSixMonths ? `+₹${(englishData.archanaiCharge || 200).toLocaleString('en-IN')}` : '₹0'}
-                </span>
-              </div>
-            </div>
-          )}
 
           {/* Validation Banner if errors exist */}
           {Object.keys(errors).length > 0 && (
@@ -526,7 +466,7 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
               className="flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-9 h-[38px] rounded-full shadow-md bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow-lg cursor-pointer active:scale-[0.99]"
               title={initialData?.name_ta ? "Update Details" : "Pay"}
             >
-              {initialData?.name_ta ? "Update Details" : (englishData?.amount ? `Pay ₹${parseFloat(englishData.amount).toLocaleString('en-IN')}` : "Pay")}
+              {initialData?.name_ta ? "Update Details" : "Pay"}
             </button>
           </div>
         </form>
