@@ -103,6 +103,7 @@ router.get('/bookings/code/:code', optionalAuth, bookings.getBookingByCode);
 router.get('/bookings', optionalAuth, bookings.listBookings);
 router.get('/todos', todos.listTodos); // Needed to render dashboard todo structure
 router.post('/bookings', bookings.createBooking); // Needed for public registration
+router.post('/payments', optionalAuth, payments.createPayment); // Needed for public and staff registration payments
 
 // Razorpay endpoints must be public so devotees can pay during signup
 router.post('/payments/razorpay/create-order', payments.createRazorpayOrder);
@@ -185,7 +186,6 @@ router.put('/panchangam/:date', panchangam.upsertPanchangam);
 router.post('/panchangam/upload-csv', panchangam.uploadCsv);
 
 // Payments
-router.post('/payments', payments.createPayment);
 router.get('/payments/booking/:bookingId', payments.getPaymentsForBooking);
 router.post('/payments/razorpay/create-order', payments.createRazorpayOrder);
 router.post('/payments/razorpay/verify', payments.verifyRazorpaySignature);
