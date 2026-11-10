@@ -49,10 +49,13 @@ async function createBugReport(req, res) {
   try {
     const { title, description, page_url, username: rawUsername, user_role: rawRole } = req.body;
 
-    if (!title || !title.trim()) {
+    const desc = (description || '').trim();
+    const ttl = (title || '').trim() || (desc ? (desc.split(/[.\n]/)[0].slice(0, 80) || desc.slice(0, 80)) : '');
+
+    if (!ttl) {
       return res.status(400).json({ error: 'Bug title/summary is required' });
     }
-    if (!description || !description.trim()) {
+    if (!desc) {
       return res.status(400).json({ error: 'Bug description/message is required' });
     }
 
@@ -72,8 +75,8 @@ async function createBugReport(req, res) {
         userId,
         username,
         userRole,
-        title.trim(),
-        description.trim(),
+        ttl,
+        desc,
         JSON.stringify(screenshotUrls),
         page_url || ''
       ]
@@ -87,7 +90,7 @@ async function createBugReport(req, res) {
         uuidv4(),
         historyUserId,
         'Reported Issue/Bug',
-        `${username} (${userRole}) reported issue: "${title.trim()}". ${screenshotUrls.length} screenshot(s) attached.`
+        `${username} (${userRole}) reported issue: "${ttl}". ${screenshotUrls.length} screenshot(s) attached.`
       ]
     );
 
@@ -96,8 +99,8 @@ async function createBugReport(req, res) {
       user_id: userId,
       username,
       user_role: userRole,
-      title: title.trim(),
-      description: description.trim(),
+      title: ttl,
+      description: desc,
       screenshot_urls: screenshotUrls,
       page_url: page_url || '',
       status: 'open'

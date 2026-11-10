@@ -362,12 +362,19 @@ export default function Signup() {
 
   const renderSlots = (kattalaiType, prefix) => {
     if (!kattalaiType) return null;
-    const typeBookings = bookings.filter(b => b.kattalai_type_id === kattalaiType.id);
+    const typeBookings = bookings.filter(b => 
+      b.kattalai_type_id === kattalaiType.id ||
+      (prefix === 'U' && b.code && (b.code.startsWith('U/') || b.code.startsWith('UK/'))) ||
+      (prefix === 'A' && b.code && (b.code.startsWith('A/') || b.code.startsWith('AJ/')))
+    );
     
     const highestBookedSlot = typeBookings.reduce((max, b) => {
-      if (b.code && (b.code.startsWith(`${prefix}/`) || b.code.startsWith(`${prefix === 'U' ? 'UK' : 'AJ'}/`))) {
-        const slotNum = parseInt(b.code.split('/')[1], 10);
-        if (!isNaN(slotNum) && slotNum > max) return slotNum;
+      if (b.code) {
+        const m = b.code.trim().match(/^([A-Za-z]+)\/(\d+)/);
+        if (m) {
+          const slotNum = parseInt(m[2], 10);
+          if (!isNaN(slotNum) && slotNum > max) return slotNum;
+        }
       }
       return max;
     }, 0);
@@ -382,7 +389,17 @@ export default function Signup() {
         </span>
         <div className="flex flex-wrap justify-center gap-2 max-w-[145px]">
           {slots.map(slotNum => {
-            const bookedItem = typeBookings.find(b => b.code && (b.code.startsWith(`${prefix}/${slotNum}/`) || b.code.startsWith(`${prefix === 'U' ? 'UK' : 'AJ'}/${slotNum}/`)));
+            const bookedItem = typeBookings.find(b => {
+              if (!b.code) return false;
+              const m = b.code.trim().match(/^([A-Za-z]+)\/(\d+)/);
+              if (!m) return false;
+              const p = m[1].toUpperCase();
+              const s = parseInt(m[2], 10);
+              const isPMatch = p === prefix || 
+                (prefix === 'U' && (p === 'UK' || p === 'U')) || 
+                (prefix === 'A' && (p === 'AJ' || p === 'A'));
+              return isPMatch && s === slotNum;
+            });
             const isBooked = !!bookedItem;
             const isSelected = (formData.code.startsWith(`${prefix}/${slotNum}/`) || formData.code.startsWith(`${prefix === 'U' ? 'UK' : 'AJ'}/${slotNum}/`)) && (formData.kattalai_type_id === kattalaiType.id || (!formData.kattalai_type_id && (prefix === 'U' ? kattalaiType.color_key === 'morning' : kattalaiType.color_key.includes('evening'))));
             
@@ -408,11 +425,12 @@ export default function Signup() {
                 disabled={isBooked}
                 className={`w-[36px] h-[36px] sm:w-[38px] sm:h-[38px] rounded-full border-2 flex items-center justify-center font-bold text-[14px] sm:text-[15px] transition-all duration-300 ${
                   isBooked 
-                    ? 'opacity-35 cursor-not-allowed bg-gray-100 border-gray-200 text-gray-400' 
+                    ? 'opacity-30 cursor-not-allowed bg-gray-200 border-gray-300 text-gray-400 pointer-events-none' 
                     : isSelected 
                       ? 'shadow-lg scale-110' 
                       : 'hover:shadow-md hover:-translate-y-0.5'
                 }`}
+                title={isBooked ? `Slot ${slotNum} is already registered on this date` : `Select Slot ${slotNum}`}
                 style={(!isBooked) ? {
                   backgroundColor: isSelected ? mainColor : lightBg,
                   borderColor: mainColor,
@@ -438,7 +456,7 @@ export default function Signup() {
         <div className="flex flex-col items-center mb-5 sm:mb-6">
           <img src="/logo.svg" alt="Vairavan Koil" className="w-[160px] sm:w-[180px] h-auto mb-2 drop-shadow-sm" />
           <h2 className="text-[22px] sm:text-[26px] font-barlow font-bold text-center text-[#5c292c] tracking-tight">
-            New Nithiya Kattalai Registration
+            Kattalaithaarar Registration
           </h2>
         </div>
 
@@ -474,33 +492,6 @@ export default function Signup() {
                 Selected Code: <span className="text-[15px] sm:text-[16px] tracking-wide font-extrabold">{formData.code}</span>
               </div>
             )}
-
-            {/* Registration Fee Summary Card */}
-            <div className="bg-[#faf7f2] border border-[#e4d7c7] rounded-[18px] p-3 sm:p-3.5 flex flex-col gap-2 mt-2 shadow-xs">
-              <div className="flex justify-between items-center text-[#5c292c] font-bold text-[13px] border-b border-[#e8ded2] pb-1.5">
-                <span>Registration Fee</span>
-                <span className="text-[16px] font-extrabold text-[#5c292c]">
-                  ₹{feeDetails.totalAmount.toLocaleString('en-IN')}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-xs text-[#786c62]">
-                <span>Base Endowment Deposit:</span>
-                <span className="font-semibold text-[#5c292c]">₹{feeDetails.baseAmount.toLocaleString('en-IN')}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-[#786c62] flex items-center gap-1.5">
-                  1st-Year Archanai:
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
-                    feeDetails.isWithinSixMonths ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                  }`}>
-                    {feeDetails.isWithinSixMonths ? 'Within 6 Mos' : 'Waived (> 6 Mos)'}
-                  </span>
-                </span>
-                <span className={`font-semibold ${feeDetails.isWithinSixMonths ? 'text-[#f37435]' : 'text-emerald-700'}`}>
-                  {feeDetails.isWithinSixMonths ? `+₹${feeDetails.archanaiCharge.toLocaleString('en-IN')}` : '₹0'}
-                </span>
-              </div>
-            </div>
           </div>
 
           {/* Right Column: Details */}
@@ -771,7 +762,7 @@ export default function Signup() {
                 }`}
                 title={isFormValid ? "Click to proceed to Tamil details & payment" : "Fill required fields to proceed"}
               >
-                Register Nithiya Kattalai • ₹{feeDetails.totalAmount.toLocaleString('en-IN')}
+                Register Nithiya Kattalai
               </button>
             </div>
 

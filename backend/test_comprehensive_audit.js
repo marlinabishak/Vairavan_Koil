@@ -412,7 +412,7 @@ async function runMasterAudit() {
       const publicRow = resPublicBookings.data[0];
       assert(publicRow.name === undefined, 'Devotee name is stripped for public signup callers');
       assert(publicRow.mobile === undefined, 'Devotee phone is stripped for public signup callers');
-      assert(publicRow.code === undefined, 'Devotee office code is stripped for public signup callers');
+      assert(publicRow.code !== undefined, 'Slot office code is retained for public signup slot blurring');
       assert(publicRow.kattalai_date !== undefined, 'Slot kattalai_date is retained for capacity check');
     }
 

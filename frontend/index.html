@@ -5,12 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <script>
       // Live API endpoint for production deployment
-      if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      var isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+      if (isProduction) {
         window.__API_URL__ = window.__API_URL__ || 'https://vairavan-koil.onrender.com/api';
       }
       if ('scrollRestoration' in history) {
         history.scrollRestoration = 'manual';
       }
+      // Silent Pre-Warm Ping & Keep-Alive: Immediately wakes up backend container on page load
+      // and keeps it warm every 5 minutes while the browser tab remains open.
+      (function() {
+        var backendUrl = isProduction ? 'https://vairavan-koil.onrender.com/health' : 'http://localhost:4000/health';
+        function pingServer() {
+          try {
+            fetch(backendUrl, { method: 'GET', cache: 'no-store' }).catch(function() {});
+          } catch(e) {}
+        }
+        pingServer();
+        setInterval(pingServer, 5 * 60 * 1000);
+      })();
     </script>
     <title>Vairavan Kovil</title>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>

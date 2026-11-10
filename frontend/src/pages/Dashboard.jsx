@@ -301,7 +301,7 @@ export default function Dashboard() {
   function bookingsFor(kattalaiTypeId) {
     let filtered = bookings.filter((b) => b.kattalai_type_id === kattalaiTypeId);
     if (isDevotee && user) {
-      filtered = filtered.filter((b) => b.id === user.id || (b.code && user.username && b.code.toLowerCase() === user.username.toLowerCase()));
+      filtered = filtered.filter((b) => b.id === user.id);
     }
     return filtered;
   }

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
-import BugReportModal from './BugReportModal';
+import SubpageLayout from './SubpageLayout';
 
 export default function DevoteeProfileView() {
   const { user } = useAuth();
@@ -16,8 +16,6 @@ export default function DevoteeProfileView() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-
-  const [isBugModalOpen, setIsBugModalOpen] = useState(false);
 
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
@@ -65,19 +63,13 @@ export default function DevoteeProfileView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf8f7] p-4 sm:p-6 md:p-8 font-barlow relative z-10 text-gray-800 animate-fade-in">
+    <SubpageLayout activePage="profile">
       <div className="max-w-4xl mx-auto">
         
-        {/* Header - Matches System Settings & History Log Exactly */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div className="flex flex-col">
             <div className="flex items-center gap-2 mb-1.5">
-              <Link
-                to="/dashboard"
-                className="text-[#5c292c] hover:underline font-semibold text-xs flex items-center gap-1 bg-white px-3 py-1 rounded-full border border-[#ebdccb] shadow-sm self-start"
-              >
-                ← Back to Dashboard
-              </Link>
               <span className="text-xs bg-[#5c292c]/10 text-[#5c292c] font-bold px-2.5 py-0.5 rounded-full capitalize">
                 Devotee Account
               </span>
@@ -85,21 +77,7 @@ export default function DevoteeProfileView() {
             <h1 className="text-2xl sm:text-3xl font-bold text-[#5c292c] tracking-tight">
               My Profile & Password
             </h1>
-            <p className="text-xs text-gray-600 mt-0.5">
-              Manage your devotee registration info and update your sign-in password
-            </p>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setIsBugModalOpen(true)}
-            className="text-[#5c292c] hover:bg-rose-50 font-semibold text-xs flex items-center gap-1.5 bg-white px-3.5 py-1.5 rounded-full border border-[#ebdccb] shadow-sm self-start sm:self-auto cursor-pointer transition-all"
-          >
-            <svg className="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <span>Report Bug</span>
-          </button>
         </div>
 
         {/* Section 1: Devotee Information Card */}
@@ -107,7 +85,6 @@ export default function DevoteeProfileView() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-[#ebdccb]/60">
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-[#5c292c]">Devotee Account Details</h2>
-              <p className="text-xs text-gray-500">Your temple registration identity & kattalai records</p>
             </div>
             <Link
               to="/my-history"
@@ -120,7 +97,7 @@ export default function DevoteeProfileView() {
             </Link>
           </div>
 
-          <div className="bg-[#faf8f7] p-4 sm:p-5 rounded-[18px] border border-[#ebdccb] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="bg-[#faf8f7] p-4 sm:p-5 rounded-[18px] border border-[#ebdccb] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <span className="block text-[11px] font-bold text-[#8c7b70] uppercase tracking-wider mb-1">
                 Office Code / ID
@@ -190,9 +167,6 @@ export default function DevoteeProfileView() {
           <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-[#ebdccb]/60">
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-[#5c292c]">Change Sign-in Password</h2>
-              <p className="text-xs text-gray-500">
-                Set a custom password instead of using your mobile number
-              </p>
             </div>
             {success && (
               <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full animate-fade-in">
@@ -234,9 +208,6 @@ export default function DevoteeProfileView() {
                   )}
                 </button>
               </div>
-              <p className="text-[11px] text-gray-500 mt-1 px-1">
-                Default password is your registered 10-digit mobile number.
-              </p>
             </div>
 
             {/* New Password & Confirm Grid */}
@@ -295,15 +266,7 @@ export default function DevoteeProfileView() {
               </div>
             )}
 
-            {/* Information note */}
-            <div className="p-3 bg-white/70 rounded-[14px] border border-[#ebdccb] text-[11.5px] text-gray-600 flex items-start gap-2">
-              <svg className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clipRule="evenodd" />
-              </svg>
-              <span>
-                Your password is protected with one-way cryptographic encryption (bcrypt). After saving, sign in with either your <strong>Office Code ({user?.username})</strong> or <strong>registered Email</strong>.
-              </span>
-            </div>
+
 
             {/* Submit Button */}
             <div className="pt-1">
@@ -320,12 +283,6 @@ export default function DevoteeProfileView() {
         </div>
 
       </div>
-
-      <BugReportModal
-        isOpen={isBugModalOpen}
-        onClose={() => setIsBugModalOpen(false)}
-      />
-
-    </div>
+    </SubpageLayout>
   );
 }

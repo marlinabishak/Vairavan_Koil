@@ -7,7 +7,6 @@ export default function BugReportModal({ isOpen, onClose, onSuccess }) {
   const { user } = useAuth();
   const location = useLocation();
 
-  const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [photos, setPhotos] = useState([]);
   const [previews, setPreviews] = useState([]);
@@ -50,11 +49,8 @@ export default function BugReportModal({ isOpen, onClose, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim()) {
-      setError('Please provide a title for the issue');
-      return;
-    }
-    if (!description.trim()) {
+    const bugText = description.trim();
+    if (!bugText) {
       setError('Please describe the issue or bug you encountered');
       return;
     }
@@ -64,9 +60,11 @@ export default function BugReportModal({ isOpen, onClose, onSuccess }) {
     setSuccessMsg(null);
 
     try {
+      const derivedTitle = bugText.split(/[.\n]/)[0].slice(0, 80) || bugText.slice(0, 80) || 'Bug Report';
+
       const formData = new FormData();
-      formData.append('title', title.trim());
-      formData.append('description', description.trim());
+      formData.append('title', derivedTitle);
+      formData.append('description', bugText);
       formData.append('page_url', location.pathname + location.search);
       formData.append('username', user?.name || user?.username || 'Guest Devotee');
       formData.append('user_role', user?.role || 'user');
@@ -82,7 +80,6 @@ export default function BugReportModal({ isOpen, onClose, onSuccess }) {
       if (onSuccess) onSuccess(res);
 
       setTimeout(() => {
-        setTitle('');
         setDescription('');
         setPhotos([]);
         setPreviews([]);
@@ -114,9 +111,6 @@ export default function BugReportModal({ isOpen, onClose, onSuccess }) {
               <h3 className="text-lg font-bold text-[#5c292c] tracking-tight leading-none">
                 Report Issue / Bug
               </h3>
-              <p className="text-xs text-gray-500 mt-1">
-                Attach photos and describe what went wrong
-              </p>
             </div>
           </div>
           <button
@@ -133,39 +127,23 @@ export default function BugReportModal({ isOpen, onClose, onSuccess }) {
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 mt-4">
 
-          {/* User & Route Context Tag */}
-          <div className="flex items-center justify-between px-3 py-1.5 bg-white/70 rounded-full border border-[#e8ded3] text-[11px] text-gray-500">
-            <span>Reporting as: <strong className="text-gray-800">{user?.name || user?.username || 'Devotee'}</strong> ({user?.role || 'user'})</span>
-            <span className="font-mono text-gray-400 truncate max-w-[150px]">{location.pathname}</span>
+          {/* User Context Tag */}
+          <div className="flex items-center justify-center px-3 py-1.5 bg-white/70 rounded-full border border-[#e8ded3] text-[11px] text-gray-600 font-medium">
+            <span>Reporting as: <strong className="text-gray-800">{user?.name || user?.username || 'Devotee'}</strong></span>
           </div>
 
-          {/* Title / Summary */}
+          {/* Issue / Bug Description */}
           <div>
             <label className="block text-[#5c292c] font-bold text-xs mb-1 px-1">
-              Issue Summary <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Brief summary of the bug or problem"
-              required
-              className="h-[38px] px-4 rounded-full border border-[#e2d8cb] bg-white font-barlow text-[13.5px] text-gray-800 placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] w-full shadow-sm"
-            />
-          </div>
-
-          {/* Message / Description */}
-          <div>
-            <label className="block text-[#5c292c] font-bold text-xs mb-1 px-1">
-              Problem Description / Steps <span className="text-red-500">*</span>
+              Describe the Bug or Problem <span className="text-red-500">*</span>
             </label>
             <textarea
-              rows={3}
+              rows={4}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="What were you trying to do, and what happened?"
+              placeholder="Please describe what problem you are seeing or what happened..."
               required
-              className="p-3 rounded-2xl border border-[#e2d8cb] bg-white font-barlow text-[13px] text-gray-800 placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] w-full shadow-sm resize-none"
+              className="p-3.5 rounded-2xl border border-[#e2d8cb] bg-white font-barlow text-[13.5px] text-gray-800 placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] w-full shadow-sm resize-none"
             />
           </div>
 

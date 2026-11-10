@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import PowerUsersSection from '../components/PowerUsersSection';
 import DevoteeProfileView from '../components/DevoteeProfileView';
+import SubpageLayout from '../components/SubpageLayout';
 
 const ROLE_INFO = {
   superadmin: {
@@ -205,19 +206,13 @@ export default function Profiles() {
   const countByRole = (role) => users.filter((u) => u.role === role).length;
 
   return (
-    <div className="min-h-screen bg-[#faf8f7] p-6 md:p-10 font-barlow relative z-10">
+    <SubpageLayout activePage="profiles">
       <div className="max-w-5xl mx-auto">
         
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <Link
-                to="/dashboard"
-                className="text-[#5c292c] hover:underline font-semibold text-xs flex items-center gap-1 bg-white px-3 py-1 rounded-full border border-[#ebdccb] shadow-sm transition-all"
-              >
-                ← Back to Dashboard
-              </Link>
               <span className="text-xs bg-[#5c292c]/10 text-[#5c292c] font-bold px-2.5 py-0.5 rounded-full">
                 Super Admin
               </span>
@@ -685,7 +680,6 @@ export default function Profiles() {
           </div>
         </div>
       )}
-
-    </div>
+    </SubpageLayout>
   );
 }

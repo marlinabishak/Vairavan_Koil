@@ -92,12 +92,7 @@ async function listBookings(req, res) {
     // Devotee isolation: if the caller is authenticated as a devotee ('user' role), strictly scope to their record
     if (req.user && req.user.role === 'user') {
       params.push(req.user.id);
-      if (req.user.username) {
-        params.push(req.user.username);
-        whereClause.push(`(b.id = $${params.length - 1} OR (b.code IS NOT NULL AND b.code != '' AND b.code = $${params.length}))`);
-      } else {
-        whereClause.push(`b.id = $${params.length}`);
-      }
+      whereClause.push(`b.id = $${params.length}`);
     }
 
     const where = whereClause.length ? `WHERE ${whereClause.join(' AND ')}` : '';
@@ -116,13 +111,14 @@ async function listBookings(req, res) {
       params
     );
 
-    // If caller is completely unauthenticated (e.g. public signup slot capacity check), strip private devotee details
+    // If caller is completely unauthenticated (e.g. public signup slot capacity check), strip private devotee details but keep code for slot availability
     if (!req.user) {
       const sanitized = rows.map(r => ({
         id: r.id,
         kattalai_type_id: r.kattalai_type_id,
         kattalai_date: r.kattalai_date,
-        kattalai_month: r.kattalai_month
+        kattalai_month: r.kattalai_month,
+        code: r.code
       }));
       return res.json(sanitized);
     }
@@ -253,6 +249,20 @@ async function createBooking(req, res) {
       }
     } catch {
       creatorId = null;
+    }
+  }
+
+  // Strict uniqueness check: verify that this slot code is not already booked on this kattalai date
+  if (code && code.trim()) {
+    const { rows: conflict } = await pool.query(
+      `SELECT id, name FROM bookings 
+       WHERE code = $1 AND kattalai_month = $2 AND kattalai_date = $3`,
+      [code.trim(), parseInt(kattalai_month, 10), parseInt(kattalai_date, 10)]
+    );
+    if (conflict && conflict.length > 0) {
+      return res.status(409).json({
+        error: `Slot ${code.trim()} is already booked on this date. Please select an available slot.`
+      });
     }
   }
 

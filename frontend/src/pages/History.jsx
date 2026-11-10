@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { api } from '../api/client';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import SubpageLayout from '../components/SubpageLayout';
 
 // Color helper for badges
 function getBadgeClasses(color = 'gray') {
@@ -649,19 +650,13 @@ export default function History() {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf8f7] p-4 sm:p-6 md:p-8 font-barlow relative z-10 text-gray-800">
+    <SubpageLayout activePage="history">
       <div className="max-w-6xl mx-auto">
         
         {/* Header - Matches System Settings & Profiles Exactly */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div className="flex flex-col">
             <div className="flex items-center gap-2 mb-1.5">
-              <Link
-                to="/dashboard"
-                className="text-[#5c292c] hover:underline font-semibold text-xs flex items-center gap-1 bg-white px-3 py-1 rounded-full border border-[#ebdccb] shadow-sm self-start"
-              >
-                ← Back to Dashboard
-              </Link>
               {user && (
                 <span className="text-xs bg-[#5c292c]/10 text-[#5c292c] font-bold px-2.5 py-0.5 rounded-full capitalize">
                   {user.role}
@@ -1225,7 +1220,6 @@ export default function History() {
           </div>
         </div>
       )}
-
-    </div>
+    </SubpageLayout>
   );
 }

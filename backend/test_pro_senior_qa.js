@@ -176,6 +176,27 @@ async function runProSeniorQA() {
     assert(payPub.status === 201, 'Public signup records payment cleanly with HTTP 201 (optionalAuth verified)');
     assert(payPub.data.booking_id === resPub.data.id, 'Payment linked directly to public devotee booking ID');
 
+    // Strict duplicate slot rejection test (409 Conflict)
+    try {
+      await axios.post(`${BASE_URL}/bookings`, {
+        ...publicPayload,
+        name: 'Another Devotee Trying Duplicate Slot'
+      });
+      assert(false, 'Duplicate slot registration should be rejected with 409 Conflict');
+    } catch (err) {
+      assert(err.response?.status === 409, 'Duplicate slot registration strictly rejected with HTTP 409 Conflict');
+      assert(err.response?.data?.error?.includes('already booked'), 'Rejection message explains slot is already booked');
+    }
+
+    // Public /signup date bookings check: Slot code must be returned for slot blurring, while personal info is stripped
+    const checkDateStr = `${nineMonthsDate.getFullYear()}-${String(nineMonthsDate.getMonth() + 1).padStart(2, '0')}-${String(nineMonthsDate.getDate()).padStart(2, '0')}`;
+    const publicSlotsRes = await axios.get(`${BASE_URL}/bookings?date=${checkDateStr}`);
+    assert(publicSlotsRes.status === 200, 'Public GET /api/bookings returns 200 OK');
+    const matchedSlot = publicSlotsRes.data.find(b => b.code === 'A/2/PUB1');
+    assert(matchedSlot !== undefined, 'Booked slot code is returned to public signup for slot blurring');
+    assert(matchedSlot?.name === undefined, 'Devotee name is strictly stripped in public signup response');
+    assert(matchedSlot?.mobile === undefined, 'Devotee phone is strictly stripped in public signup response');
+
     // ===================================================================================
     // VECTOR 3: Multi-Identifier Devotee Login & Role-Based Isolation
     // ===================================================================================
