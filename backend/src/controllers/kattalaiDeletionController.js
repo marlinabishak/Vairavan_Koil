@@ -105,6 +105,7 @@ async function initiateDeletion(req, res) {
       sendPowerUserOtp({
         countryCode: pres.country_code || '+91',
         mobileNumber: pres.phone,
+        recipientName: pres.name || 'President',
         roleTitle: 'President',
         otpCode: presidentOtp,
         officeCode: booking.code,
@@ -113,6 +114,7 @@ async function initiateDeletion(req, res) {
       sendPowerUserOtp({
         countryCode: treas.country_code || '+91',
         mobileNumber: treas.phone,
+        recipientName: treas.name || 'Treasurer',
         roleTitle: 'Treasurer',
         otpCode: treasurerOtp,
         officeCode: booking.code,
@@ -121,6 +123,7 @@ async function initiateDeletion(req, res) {
       sendPowerUserOtp({
         countryCode: sec.country_code || '+91',
         mobileNumber: sec.phone,
+        recipientName: sec.name || 'Secretary',
         roleTitle: 'Secretary',
         otpCode: secretaryOtp,
         officeCode: booking.code,

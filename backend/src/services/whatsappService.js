@@ -75,10 +75,10 @@ async function sendKattalaiTemplate({ countryCode, mobileNumber, templateName, v
   }
 }
 
-async function sendPowerUserOtp({ countryCode, mobileNumber, roleTitle, otpCode, officeCode, devoteeName }) {
+async function sendPowerUserOtp({ countryCode, mobileNumber, recipientName, roleTitle, otpCode, officeCode, devoteeName }) {
   const toNumber = formatWhatsAppNumber(countryCode, mobileNumber);
   const token = process.env.WHATSAPP_OTP_API_TOKEN || process.env.WHATSAPP_API_TOKEN;
-  const templateName = process.env.WHATSAPP_OTP_TEMPLATE || 'OTP_Power_Users';
+  const templateName = process.env.WHATSAPP_OTP_TEMPLATE || 'utility_rem';
   const url = `${process.env.WHATSAPP_API_ENDPOINT}?token=${token}`;
 
   // Helper to send with given parameters
@@ -101,19 +101,37 @@ async function sendPowerUserOtp({ countryCode, mobileNumber, roleTitle, otpCode,
   };
 
   try {
-    // 1. Try with single OTP variable {{1}} (Standard WhatsApp OTP format)
     let resp;
+    // 1. Primary: Try 5 parameters (Format for utility_rem)
+    // {{1}} = recipientName || roleTitle || "Power User"
+    // {{2}} = roleTitle || "Power User"
+    // {{3}} = devoteeName || "Kattalai Devotee"
+    // {{4}} = officeCode ? `(Office Code: ${officeCode}, OTP` : `(OTP`
+    // {{5}} = String(otpCode)
+    const codePart = officeCode ? `(Office Code: ${officeCode}, OTP` : `(OTP`;
     try {
-      resp = await trySend([{ type: "text", text: String(otpCode) }]);
-    } catch (singleErr) {
-      // 2. If rejected due to param count mismatch, try with 4 parameters
-      console.log(`[WhatsApp OTP] Retrying with multi-variable format for ${roleTitle}...`);
       resp = await trySend([
-        { type: "text", text: String(otpCode) },
+        { type: "text", text: String(recipientName || roleTitle || "Power User") },
         { type: "text", text: String(roleTitle || "Power User") },
         { type: "text", text: String(devoteeName || "Kattalai Devotee") },
-        { type: "text", text: String(officeCode || "") }
+        { type: "text", text: codePart },
+        { type: "text", text: String(otpCode) }
       ]);
+    } catch (fiveErr) {
+      // 2. If 5-param fails, fallback to 1-param (standard OTP)
+      try {
+        console.log(`[WhatsApp OTP] Retrying with 1-variable format for ${roleTitle}...`);
+        resp = await trySend([{ type: "text", text: String(otpCode) }]);
+      } catch (oneErr) {
+        // 3. Fallback to 4-param format
+        console.log(`[WhatsApp OTP] Retrying with 4-variable format for ${roleTitle}...`);
+        resp = await trySend([
+          { type: "text", text: String(otpCode) },
+          { type: "text", text: String(roleTitle || "Power User") },
+          { type: "text", text: String(devoteeName || "Kattalai Devotee") },
+          { type: "text", text: String(officeCode || "") }
+        ]);
+      }
     }
 
     console.log(`[WhatsApp OTP] Response ${resp.status}:`, JSON.stringify(resp.data));
