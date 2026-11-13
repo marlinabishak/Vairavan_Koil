@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext';
 import TamilDetailsModal from './TamilDetailsModal.jsx';
+import OnlinePaymentModal from './OnlinePaymentModal.jsx';
 import { calculateKattalaiFee } from '../utils/kattalaiFee.js';
 
 export const COUNTRY_CODES = [
@@ -183,7 +184,9 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
       setForm(prev => ({ ...prev, amount: dynamicFee.totalAmount }));
     }
   }, [dynamicFee, existingBooking]);
+
   const [transferBaseRate, setTransferBaseRate] = useState(3500);
+  const [transferExtraFee, setTransferExtraFee] = useState(200);
   const [transferring, setTransferring] = useState(false);
   const [transferError, setTransferError] = useState(null);
   const [isTransferTamil, setIsTransferTamil] = useState(false);
@@ -285,6 +288,8 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
           const val = parseFloat(s.transfer_base_amount);
           if (!isNaN(val)) setTransferBaseRate(val);
         }
+        const extra = parseFloat(s.transfer_extra_fee || s.archanai_fee || 200);
+        if (!isNaN(extra)) setTransferExtraFee(extra);
         setFeeSettings({
           baseAmount: s.kattalai_base_amount ? parseFloat(s.kattalai_base_amount) : 3500,
           archanaiFee: s.archanai_fee ? parseFloat(s.archanai_fee) : 200
@@ -325,7 +330,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
 
   const isAlreadyTransferred = Boolean(existingBooking?.is_transferred || existingBooking?.transferred_at);
   const oldPaidAmount = parseFloat(existingBooking?.amount || 0);
-  const transferDifferenceAmount = Math.max(0, transferBaseRate - oldPaidAmount);
+  const transferDifferenceAmount = Math.max(0, transferBaseRate - oldPaidAmount) + transferExtraFee;
 
   function handleStartTransferTamil(e) {
     if (e) e.preventDefault();
@@ -553,23 +558,28 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
   }
 
   async function handleRequestChange() {
+    if (editRequestStatus === 'pending') {
+      alert('Your request to edit Nithiya Kattalai details is already submitted and pending admin approval.');
+      return;
+    }
     try {
       await api.createEditRequest({ booking_id: existingBooking?.id });
-      await api.createHistoryLog({
-        user_id: user.role === 'user' ? null : user.id,
-        action: 'REQUESTED_EDIT',
-        details: `Devotee requested permission to edit their locked details.`,
-        booking_id: existingBooking?.id
-      });
       setEditRequestStatus('pending');
+      alert('Request to edit Nithiya Kattalai details has been submitted. Once approved by Admin, your details will be unlocked for editing.');
     } catch (err) {
       console.error(err);
+      alert(err.message || 'Failed to submit edit request');
     }
   }
 
-  const LockIcon = ({ className = "absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#f37435]" }) => (
+  const LockIcon = ({ className = "absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#5c292c]" }) => (
     isLockedForUser ? (
-      <button type="button" onClick={handleRequestChange} className={className} title="Locked - Request Full Edit Access">
+      <button 
+        type="button" 
+        onClick={handleRequestChange} 
+        className={className} 
+        title={editRequestStatus === 'pending' ? "Edit request pending admin approval" : "Details locked - Click to request edit permission from Admin"}
+      >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
       </button>
     ) : null
@@ -746,6 +756,25 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                     1-time limit reached.
                   </span>
                 </div>
+              </div>
+            )}
+
+            {/* Locked for user notice & request edit button */}
+            {isLockedForUser && (
+              <div className="bg-[#fffbeb] border border-[#fef3c7] rounded-xl px-3 py-1.5 flex items-center justify-between text-xs text-[#92400e] animate-fade-in mb-1">
+                <div className="flex items-center gap-1.5">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  <span>{editRequestStatus === 'pending' ? 'Edit Request Pending Admin Approval' : 'Devotee details are locked for editing.'}</span>
+                </div>
+                {editRequestStatus !== 'pending' && (
+                  <button
+                    type="button"
+                    onClick={handleRequestChange}
+                    className="px-3 py-1 rounded-full bg-[#5c292c] text-white font-bold text-[11px] hover:bg-[#482022] transition-colors cursor-pointer shrink-0"
+                  >
+                    Request Edit
+                  </button>
+                )}
               </div>
             )}
 
@@ -1067,9 +1096,9 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 onClick={handlePayNow}
                 disabled={saving}
                 className="flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-8 h-[38px] rounded-full shadow-sm bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow cursor-pointer active:scale-[0.99]"
-                title={isFormValid ? (existingBooking ? "Update Nithiya Kattalai" : "Register Nithiya Kattalai") : "Fill required fields to proceed"}
+                title={isFormValid ? (existingBooking ? "Update Details" : "Pay") : "Fill required fields to proceed"}
               >
-                {saving ? 'Saving...' : (existingBooking ? 'Update Nithiya Kattalai' : 'Register Nithiya Kattalai')}
+                {saving ? 'Saving...' : (existingBooking ? 'Update Details' : 'Pay')}
               </button>
             </div>
           </div>
@@ -1259,7 +1288,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 onClick={handleStartTransferTamil}
                 className="flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-8 h-[38px] rounded-full shadow-sm bg-[#c2410c] hover:bg-[#9a3412] text-white hover:shadow cursor-pointer active:scale-[0.99] disabled:opacity-50"
               >
-                {transferring ? 'Transferring...' : `Proceed to Tamil Details (₹${transferDifferenceAmount.toLocaleString()})`}
+                {transferring ? 'Transferring...' : 'Pay'}
               </button>
             </div>
           </div>
@@ -1290,8 +1319,18 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
             star: transferForm.star,
             place: transferForm.place,
             amount: transferDifferenceAmount,
+            isTransfer: true,
+            currentRate: transferBaseRate,
+            oldPaidAmount: oldPaidAmount,
+            transferDifferenceAmount: transferDifferenceAmount,
             comments: `1-Time Account Transfer from ${existingBooking?.title || ''} ${existingBooking?.name || ''}`
-          } : form}
+          } : {
+            ...form,
+            amount: dynamicFee ? dynamicFee.totalAmount : (form.amount || 3500),
+            baseAmount: dynamicFee ? dynamicFee.baseAmount : 3500,
+            archanaiCharge: dynamicFee ? dynamicFee.archanaiCharge : 0,
+            isWithinSixMonths: dynamicFee ? dynamicFee.isWithinSixMonths : false,
+          }}
         />
       )}
 
@@ -1469,6 +1508,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
           </div>
         </div>
       )}
+
     </div>
   );
 }

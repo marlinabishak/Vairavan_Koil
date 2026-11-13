@@ -20,6 +20,10 @@ function getBadgeClasses(color = 'gray') {
       return 'bg-rose-50 text-rose-800 border-rose-300';
     case 'green':
       return 'bg-green-50 text-green-800 border-green-300';
+    case 'teal':
+      return 'bg-teal-50 text-teal-800 border-teal-300';
+    case 'orange':
+      return 'bg-orange-50 text-orange-800 border-orange-300';
     default:
       return 'bg-gray-100 text-gray-700 border-gray-200';
   }
@@ -203,8 +207,63 @@ function analyzeHistoryLog(log) {
     }
   }
 
-  // 4. DEVOTEE UPDATES WITH DIFFS
-  if (action === 'Updated Devotee' || action.includes('Kattalai')) {
+  // 4. KATTALAI DELETIONS & 3-POWER-USER AUTHORIZATION
+  if (action === 'Deleted Kattalai' || action === 'Requested Kattalai Deletion' || action.toLowerCase().includes('delet')) {
+    const isRequest = action.includes('Requested') || details.includes('initiated');
+    const nameMatch = details.match(/Kattalai\s*"([^"]+)"/i);
+    const codeMatch = details.match(/Office Code:\s*([^)]+)/i);
+    const extractedName = nameMatch ? nameMatch[1].trim() : (devoteeName || 'Deleted Kattalai');
+    const extractedCode = codeMatch ? codeMatch[1].trim() : (devoteeCode || '-');
+
+    const presMatch = details.match(/President\s*\(([^)]+)\)/i);
+    const treasMatch = details.match(/Treasurer\s*\(([^)]+)\)/i);
+    const secMatch = details.match(/Secretary\s*\(([^)]+)\)/i);
+    const committeeSummary = (presMatch && treasMatch && secMatch)
+      ? `${presMatch[1]}, ${treasMatch[1]}, ${secMatch[1]}`
+      : 'President, Treasurer, Secretary';
+
+    return {
+      category: 'deletions',
+      tableBadge: {
+        text: isRequest ? 'Deletion Requested' : 'Deleted Kattalai',
+        color: isRequest ? 'amber' : 'rose',
+      },
+      tableSummary: (
+        <span className="truncate">
+          {isRequest ? (
+            <>
+              Dispatched 3 secret authorization OTPs for <strong className="text-gray-900 font-semibold">{extractedName}</strong> <span className="text-gray-500 font-normal">({extractedCode}) to {committeeSummary}</span>
+            </>
+          ) : (
+            <>
+              Permanently deleted <strong className="text-gray-900 font-semibold">{extractedName}</strong> <span className="text-[#5c292c] font-bold">({extractedCode})</span> after verifying 3 OTPs from {committeeSummary}
+            </>
+          )}
+        </span>
+      ),
+      modal: {
+        actor: { name: userName, role: userRole, username: userLogin },
+        target: { name: extractedName, code: extractedCode },
+        changeInfo: {
+          type: 'info',
+          title: isRequest ? '3-Power User OTP Authorization Dispatched' : 'Kattalai Permanently Deleted (Purged)',
+          badge: isRequest ? 'Pending 3-OTP Verification' : 'Verified & Purged',
+          badgeColor: isRequest ? 'amber' : 'rose',
+          mainText: details,
+          priorTrail: isRequest
+            ? 'Valid for 1 hour. Requires verified OTPs from President, Treasurer, and Secretary before purge.'
+            : 'Purged from temple records after unanimous 3-power-user OTP verification.',
+        },
+        extraContext: {
+          title: 'Authorizing Constitutional Officers',
+          content: `President: ${presMatch ? presMatch[1] : 'President'} | Treasurer: ${treasMatch ? treasMatch[1] : 'Treasurer'} | Secretary: ${secMatch ? secMatch[1] : 'Secretary'}`
+        }
+      }
+    };
+  }
+
+  // 5. DEVOTEE UPDATES WITH DIFFS
+  if (action === 'Updated Devotee') {
     const changesMatch = details.match(/Changes:\s*(.+)$/i);
     const rawChanges = changesMatch ? changesMatch[1] : '';
     const diffItems = [];
@@ -251,8 +310,8 @@ function analyzeHistoryLog(log) {
     };
   }
 
-  // 5. ACCOUNT TRANSFER
-  if (action === 'ACCOUNT_TRANSFER' || action.includes('TRANSFER')) {
+  // 6. ACCOUNT TRANSFER & INHERITANCE
+  if (action === 'ACCOUNT_TRANSFER' || action.includes('TRANSFER') || action.includes('Transfer')) {
     const fromMatch = details.match(/from\s+([^.]+?)\s+to\s+([^.]+?)\./i);
     const fromName = fromMatch ? fromMatch[1].trim() : 'Previous Owner';
     const toName = fromMatch ? fromMatch[2].trim() : 'New Owner';
@@ -261,7 +320,7 @@ function analyzeHistoryLog(log) {
 
     return {
       category: 'transfers_requests',
-      tableBadge: { text: 'Ownership Transfer', color: 'purple' },
+      tableBadge: { text: 'Inheritance Transfer', color: 'purple' },
       tableSummary: (
         <span className="truncate">
           Transfer: <strong className="text-gray-800">{fromName}</strong> → <strong className="text-[#5c292c]">{toName}</strong>
@@ -285,37 +344,69 @@ function analyzeHistoryLog(log) {
     };
   }
 
-  // 6. DELETION & OTP REQUESTS
-  if (action.includes('Deletion') || action.includes('Deleted')) {
-    const isRequest = action.includes('Requested') || details.includes('initiated');
-    const targetMatch = details.match(/Kattalai\s*"([^"]+)"\s*\(([^)]+)\)/i);
-    const targetKattalai = targetMatch ? `${targetMatch[1]} (${targetMatch[2]})` : (devoteeName || 'Kattalai');
+  // 7. FINANCIAL PAYMENTS & ENDOWMENTS
+  if (action.includes('Payment') || action.includes('Receipt') || action.includes('Fee')) {
+    const amountMatch = details.match(/₹([\d,]+)/);
+    const methodMatch = details.match(/via\s+([A-Za-z_]+)/i);
+    const devoteeMatch = details.match(/devotee\s+"([^"]+)"/i);
+    const codeMatch = details.match(/Office Code:\s*([^)]+)/i);
+    const amount = amountMatch ? `₹${amountMatch[1]}` : 'Payment';
+    const method = methodMatch ? methodMatch[1].toUpperCase() : 'CASH';
+    const targetName = devoteeMatch ? devoteeMatch[1] : (devoteeName || 'Devotee');
+    const targetCode = codeMatch ? codeMatch[1].trim() : (devoteeCode || 'Treasury');
 
     return {
-      category: 'staff',
-      tableBadge: { text: isRequest ? 'OTP Request' : 'Permanent Delete', color: 'red' },
+      category: 'finance',
+      tableBadge: { text: `Paid ${amount}`, color: 'emerald' },
       tableSummary: (
         <span className="truncate">
-          {isRequest ? 'Initiated 3-OTP deletion authorization' : 'Permanently deleted after 3 OTPs verified'} for <strong className="text-gray-900 font-semibold">{targetKattalai}</strong>
+          Received <strong className="text-emerald-800 font-bold">{amount}</strong> via <strong className="text-gray-800">{method}</strong> for <span className="text-gray-900 font-semibold">{targetName}</span>
         </span>
       ),
       modal: {
         actor: { name: userName, role: userRole, username: userLogin },
-        target: { name: targetKattalai, code: 'Deletion Security Protocol' },
+        target: { name: targetName, code: targetCode },
         changeInfo: {
           type: 'info',
-          title: isRequest ? '3-OTP Deletion Request Dispatched' : 'Kattalai Permanently Deleted',
-          badge: isRequest ? 'Pending OTPs' : 'Deleted',
-          badgeColor: 'red',
+          title: 'Financial Payment Receipt',
+          badge: `${method} • Paid`,
+          badgeColor: 'emerald',
           mainText: details,
-          priorTrail: isRequest ? 'Authorized by 3 Power User OTPs valid for 1 hour.' : 'Verified all 3 OTPs before irreversible purge.',
+          priorTrail: 'Credited directly to temple endowments.'
         },
-        extraContext: { title: 'Security Stakeholders', content: 'President, Treasurer, and Secretary multi-party authorization required.' },
+        extraContext: null
       }
     };
   }
 
-  // 7. WHATSAPP REMINDERS
+  // 8. SETTINGS & PANCHANGAM CALENDAR
+  if (action.includes('Setting') || action.includes('Panchangam')) {
+    const isPanchangam = action.includes('Panchangam');
+    return {
+      category: 'settings_panchangam',
+      tableBadge: { text: isPanchangam ? 'Panchangam CSV' : 'System Setting', color: 'purple' },
+      tableSummary: (
+        <span className="truncate text-gray-800 font-medium">
+          {details}
+        </span>
+      ),
+      modal: {
+        actor: { name: userName, role: userRole, username: userLogin },
+        target: { name: isPanchangam ? 'Panchangam Calendar' : 'System Configuration', code: 'Temple Administration' },
+        changeInfo: {
+          type: 'info',
+          title: isPanchangam ? 'Panchangam Calendar Sync' : 'System Rule Modified',
+          badge: isPanchangam ? 'Calendar Template' : 'Rule Update',
+          badgeColor: 'purple',
+          mainText: details,
+          priorTrail: null
+        },
+        extraContext: null
+      }
+    };
+  }
+
+  // 9. WHATSAPP REMINDERS
   if (action.includes('WhatsApp')) {
     const statsMatch = details.match(/Sent\s+([^.]+?)\s+reminders\s*\(([^)]+)\)\s+for date\s+([^.]+?)\./i);
     const stats = statsMatch ? statsMatch[1].trim() : 'reminders';
@@ -346,18 +437,18 @@ function analyzeHistoryLog(log) {
     };
   }
 
-  // 8. STAFF & POWER USERS
-  if (action.includes('Staff') || action.includes('Power User')) {
+  // 10. COMMITTEE & STAFF PROFILES
+  if (action.includes('Power User') || action.includes('Staff Profile') || (action.includes('Staff') && !action.includes('Login'))) {
     const isPower = action.includes('Power User');
     const profileMatch = details.match(/profile\s+(?:for\s+)?"([^"]+)"/i) || details.match(/for\s+"([^"]+)"/i);
-    const profileName = profileMatch ? profileMatch[1] : 'Staff Profile';
+    const profileName = profileMatch ? profileMatch[1] : 'Committee Member';
 
     return {
-      category: 'staff',
-      tableBadge: { text: isPower ? 'Power User' : 'Staff Profile', color: 'purple' },
+      category: 'committee_staff',
+      tableBadge: { text: isPower ? 'Power User' : 'Staff Profile', color: 'amber' },
       tableSummary: (
         <span className="truncate">
-          Updated {isPower ? 'Power User' : 'staff'} profile for <strong className="text-gray-900 font-semibold">{profileName}</strong>
+          {isPower ? 'Updated Power User officer' : 'Updated staff profile'}: <strong className="text-gray-900 font-semibold">{profileName}</strong>
         </span>
       ),
       modal: {
@@ -365,9 +456,9 @@ function analyzeHistoryLog(log) {
         target: { name: profileName, code: isPower ? 'Power User' : 'Staff Management' },
         changeInfo: {
           type: 'info',
-          title: 'Profile Updated',
+          title: isPower ? 'Committee Power User Modified' : 'Staff Profile Modified',
           badge: isPower ? 'Officer Profile' : 'Staff Role',
-          badgeColor: 'purple',
+          badgeColor: 'amber',
           mainText: details,
           priorTrail: null,
         },
@@ -376,12 +467,12 @@ function analyzeHistoryLog(log) {
     };
   }
 
-  // 9. LOGINS & PASSWORDS
+  // 11. LOGINS & SECURITY CREDENTIALS
   if (action.includes('Login') || action.includes('Password')) {
     const isPass = action.includes('Password');
     return {
-      category: 'general',
-      tableBadge: { text: isPass ? 'Password' : 'Login', color: 'gray' },
+      category: 'security_logins',
+      tableBadge: { text: isPass ? 'Password Security' : 'Signed In', color: isPass ? 'blue' : 'gray' },
       tableSummary: (
         <span className="text-gray-700 truncate">
           {details}
@@ -394,7 +485,7 @@ function analyzeHistoryLog(log) {
           type: 'info',
           title: isPass ? 'Security Credential Changed' : 'Authentication Session',
           badge: isPass ? 'Password Updated' : 'Signed In',
-          badgeColor: 'gray',
+          badgeColor: isPass ? 'blue' : 'gray',
           mainText: details,
           priorTrail: null,
         },
@@ -403,7 +494,7 @@ function analyzeHistoryLog(log) {
     };
   }
 
-  // 10. EDIT REQUESTS
+  // 12. EDIT REQUESTS
   if (action.includes('Edit Request') || action === 'REQUESTED_EDIT') {
     const isRequest = action === 'REQUESTED_EDIT';
     return {
@@ -430,7 +521,7 @@ function analyzeHistoryLog(log) {
     };
   }
 
-  // 11. REGISTRATIONS
+  // 13. REGISTRATIONS
   if (action === 'Created Booking' || action.includes('Register') || action.includes('Sign Up')) {
     return {
       category: 'registrations',
@@ -489,12 +580,17 @@ export default function History() {
   const [categoryCounts, setCategoryCounts] = useState({
     all: 0,
     registrations: 0,
+    deletions: 0,
     updates: 0,
-    attendance: 0,
-    whatsapp: 0,
-    printing: 0,
     transfers_requests: 0,
-    staff: 0,
+    attendance: 0,
+    printing: 0,
+    whatsapp: 0,
+    finance: 0,
+    committee_staff: 0,
+    settings_panchangam: 0,
+    bugs: 0,
+    security_logins: 0,
   });
   const [pagination, setPagination] = useState({
     page: 1,
@@ -566,16 +662,21 @@ export default function History() {
     loadLogs();
   }, [loadLogs]);
 
-  // Category tabs matching Settings / WhatsApp tabs
+  // Category tabs matching full Temple Governance & Operations
   const categories = [
     { id: 'all', label: 'All Activities' },
     { id: 'registrations', label: 'Registrations' },
-    { id: 'updates', label: 'Updates & Edits' },
-    { id: 'attendance', label: 'Attendance' },
-    { id: 'whatsapp', label: 'WhatsApp Reminders' },
-    { id: 'printing', label: 'Prasatham Printing' },
+    { id: 'deletions', label: 'Kattalai Deletions' },
+    { id: 'updates', label: 'Devotee Edits' },
     { id: 'transfers_requests', label: 'Transfers & Requests' },
-    { id: 'staff', label: 'Staff & System' },
+    { id: 'attendance', label: 'Attendance & Pooja' },
+    { id: 'printing', label: 'Prasatham Printing' },
+    { id: 'whatsapp', label: 'WhatsApp Reminders' },
+    { id: 'finance', label: 'Financial & Receipts' },
+    { id: 'committee_staff', label: 'Committee & Staff' },
+    { id: 'settings_panchangam', label: 'Panchangam & Settings' },
+    { id: 'bugs', label: 'Issue Reports' },
+    { id: 'security_logins', label: 'Logins & Security' },
   ];
 
   // Quick preset dates
@@ -608,19 +709,37 @@ export default function History() {
     if (action.includes('Delete') || action.includes('Deleted')) {
       return 'bg-red-50 text-red-800 border-red-200 font-bold';
     }
-    if (action.includes('Power User')) {
-      return 'bg-purple-50 text-purple-900 border-purple-200 font-bold';
+    if (action.includes('Power User') || action.includes('Staff Profile') || action.includes('Staff User')) {
+      return 'bg-amber-50 text-amber-900 border-amber-200 font-bold';
     }
     if (action.includes('Present') || action.includes('Approved')) {
-      return 'bg-emerald-50 text-emerald-800 border-emerald-200';
+      return 'bg-emerald-50 text-emerald-800 border-emerald-200 font-semibold';
     }
     if (action.includes('Absent') || action.includes('Rejected')) {
-      return 'bg-rose-50 text-rose-800 border-rose-200';
+      return 'bg-rose-50 text-rose-800 border-rose-200 font-semibold';
     }
     if (action.includes('WhatsApp')) {
-      return 'bg-green-50 text-green-800 border-green-200';
+      return 'bg-green-50 text-green-800 border-green-200 font-semibold';
     }
-    return 'bg-[#f7f1e5] text-[#5c292c] border-[#ebdccb]';
+    if (action.includes('Printed') || action.includes('Print')) {
+      return 'bg-blue-50 text-blue-800 border-blue-200 font-semibold';
+    }
+    if (action.includes('Payment') || action.includes('Receipt') || action.includes('Fee')) {
+      return 'bg-teal-50 text-teal-800 border-teal-200 font-semibold';
+    }
+    if (action.includes('Setting') || action.includes('Panchangam')) {
+      return 'bg-purple-50 text-purple-800 border-purple-200 font-semibold';
+    }
+    if (action.includes('Bug') || action.includes('Issue')) {
+      return 'bg-orange-50 text-orange-800 border-orange-200 font-semibold';
+    }
+    if (action.includes('Password')) {
+      return 'bg-indigo-50 text-indigo-800 border-indigo-200 font-semibold';
+    }
+    if (action.includes('Login')) {
+      return 'bg-slate-100 text-slate-700 border-slate-200 font-medium';
+    }
+    return 'bg-[#f7f1e5] text-[#5c292c] border-[#ebdccb] font-semibold';
   };
 
   const getRoleBadge = (role = '') => {
@@ -890,7 +1009,25 @@ export default function History() {
 
                           {/* Devotee / Target */}
                           <td className="py-2.5 sm:py-3 px-3.5 whitespace-nowrap">
-                            {analysis.category === 'printing' ? (
+                            {log.booking_name ? (
+                              <div>
+                                <div className="font-bold text-[#5c292c] text-xs">{log.booking_name}</div>
+                                {log.booking_code && (
+                                  <span className="text-[10px] bg-[#f7f1e5] text-[#5c292c] px-1.5 py-0.1 rounded font-bold border border-[#ebdccb]">
+                                    {log.booking_code}
+                                  </span>
+                                )}
+                              </div>
+                            ) : analysis.category === 'deletions' ? (
+                              <div>
+                                <div className="font-bold text-red-700 text-xs">{analysis.modal.target.name}</div>
+                                {analysis.modal.target.code && (
+                                  <span className="text-[10px] bg-red-50 text-red-800 px-1.5 py-0.1 rounded font-bold border border-red-200">
+                                    {analysis.modal.target.code}
+                                  </span>
+                                )}
+                              </div>
+                            ) : analysis.category === 'printing' ? (
                               <div className="flex items-center gap-1.5">
                                 <span className="font-bold text-[#5c292c] text-xs">
                                   {analysis.modal.target.name.replace('Target Date: ', '')}
@@ -899,14 +1036,35 @@ export default function History() {
                                   {analysis.modal.target.code}
                                 </span>
                               </div>
-                            ) : log.booking_name ? (
+                            ) : analysis.category === 'committee_staff' ? (
                               <div>
-                                <div className="font-bold text-[#5c292c] text-xs">{log.booking_name}</div>
-                                {log.booking_code && (
-                                  <span className="text-[10px] bg-[#f7f1e5] text-[#5c292c] px-1.5 py-0.1 rounded font-bold border border-[#ebdccb]">
-                                    {log.booking_code}
-                                  </span>
-                                )}
+                                <div className="font-bold text-[#5c292c] text-xs">{analysis.modal.target.name}</div>
+                                <span className="text-[10px] bg-amber-50 text-amber-800 px-1.5 py-0.1 rounded font-bold border border-amber-200">
+                                  {analysis.modal.target.code}
+                                </span>
+                              </div>
+                            ) : analysis.category === 'settings_panchangam' ? (
+                              <div>
+                                <div className="font-bold text-[#5c292c] text-xs">{analysis.modal.target.name}</div>
+                                <span className="text-[10px] bg-purple-50 text-purple-800 px-1.5 py-0.1 rounded font-bold border border-purple-200">
+                                  {analysis.modal.target.code}
+                                </span>
+                              </div>
+                            ) : analysis.category === 'finance' ? (
+                              <div>
+                                <div className="font-bold text-[#5c292c] text-xs">{analysis.modal.target.name}</div>
+                                <span className="text-[10px] bg-teal-50 text-teal-800 px-1.5 py-0.1 rounded font-bold border border-teal-200">
+                                  {analysis.modal.target.code}
+                                </span>
+                              </div>
+                            ) : analysis.category === 'bugs' ? (
+                              <div>
+                                <div className="font-bold text-[#5c292c] text-xs truncate max-w-[150px]" title={analysis.modal.target.name}>
+                                  {analysis.modal.target.name}
+                                </div>
+                                <span className="text-[10px] bg-orange-50 text-orange-800 px-1.5 py-0.1 rounded font-bold border border-orange-200">
+                                  {analysis.modal.target.code}
+                                </span>
                               </div>
                             ) : (
                               <div>

@@ -681,9 +681,24 @@ async function transferBooking(req, res) {
       console.warn('Could not read transfer_base_amount from settings, using 3500:', sErr.message);
     }
 
-    // 5. Calculate difference amount
+    let extraTransferFee = 200;
+    try {
+      const { rows: extraRows } = await pool.query(
+        "SELECT setting_value FROM system_settings WHERE setting_key IN ('transfer_extra_fee', 'archanai_fee') ORDER BY FIELD(setting_key, 'transfer_extra_fee', 'archanai_fee') LIMIT 1"
+      );
+      if (extraRows.length && extraRows[0].setting_value) {
+        const parsed = parseFloat(extraRows[0].setting_value);
+        if (!isNaN(parsed) && parsed >= 0) {
+          extraTransferFee = parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not read transfer_extra_fee from settings, using 200:', e.message);
+    }
+
+    // 5. Calculate difference amount: (Current Endowment Rate - Prior Historical Deposit) + Extra Transfer Fee
     const oldPaidAmount = parseFloat(current.amount || 0);
-    const differenceAmount = Math.max(0, baseTransferAmount - oldPaidAmount);
+    const differenceAmount = Math.max(0, baseTransferAmount - oldPaidAmount) + extraTransferFee;
 
     // 6. Update booking with son/daughter details (replaces father details in the exact same columns)
     const countryCodeVal = req.body.country_code ? String(req.body.country_code).replace(/\D/g, '') : (current.country_code || '91');
@@ -761,7 +776,7 @@ async function transferBooking(req, res) {
         [
           uuidv4(),
           transferUserId,
-          `1-time account transfer from ${current.title || ''} ${current.name} to ${title || ''} ${name}. Base rate: ₹${baseTransferAmount}, Previous paid: ₹${oldPaidAmount}, Difference collected: ₹${differenceAmount}.`,
+          `1-time account transfer from ${current.title || ''} ${current.name} to ${title || ''} ${name}. Base rate: ₹${baseTransferAmount}, Prior historical deposit: ₹${oldPaidAmount}, Extra fee: ₹${extraTransferFee}, Total collected: ₹${differenceAmount}.`,
           id
         ]
       );

@@ -23,6 +23,31 @@ async function createPayment(req, res) {
       [id, booking_id, amount, method || 'cash', transaction_ref || null]
     );
     const { rows } = await pool.query('SELECT * FROM payments WHERE id = $1', [id]);
+
+    // Record audit log in history_logs for Finance & Treasury tab
+    try {
+      const { rows: bRows } = await pool.query('SELECT name, code FROM bookings WHERE id = $1', [booking_id]);
+      const bName = bRows[0]?.name || 'Devotee';
+      const bCode = bRows[0]?.code ? ` (Office Code: ${bRows[0].code})` : '';
+      let staffUserId = null;
+      if (req.user && req.user.role !== 'user' && req.user.id) {
+        const { rows: uRows } = await pool.query('SELECT id FROM users WHERE id = $1', [req.user.id]);
+        if (uRows.length > 0) staffUserId = req.user.id;
+      }
+      await pool.query(
+        `INSERT INTO history_logs (id, user_id, booking_id, action, details) VALUES ($1, $2, $3, $4, $5)`,
+        [
+          uuidv4(),
+          staffUserId,
+          booking_id,
+          'Recorded Payment',
+          `Payment of ₹${parseFloat(amount).toLocaleString('en-IN')} recorded via ${(method || 'cash').toUpperCase()}${transaction_ref ? ` (Ref: ${transaction_ref})` : ''} for devotee "${bName}"${bCode}.`
+        ]
+      );
+    } catch (logErr) {
+      console.warn('Payment audit log warning:', logErr.message);
+    }
+
     res.status(201).json(rows[0]);
   } catch (err) {
     console.error('Error [paymentsController]:', err.stack || err);
@@ -101,6 +126,31 @@ async function verifyRazorpaySignature(req, res) {
         [id, booking_id, amount, isMock ? 'mock_online' : 'razorpay', razorpay_payment_id || `pay_${Date.now()}`]
       );
       const { rows } = await pool.query('SELECT * FROM payments WHERE id = $1', [id]);
+
+      // Record audit log in history_logs for Finance & Treasury tab
+      try {
+        const { rows: bRows } = await pool.query('SELECT name, code FROM bookings WHERE id = $1', [booking_id]);
+        const bName = bRows[0]?.name || 'Devotee';
+        const bCode = bRows[0]?.code ? ` (Office Code: ${bRows[0].code})` : '';
+        let staffUserId = null;
+        if (req.user && req.user.role !== 'user' && req.user.id) {
+          const { rows: uRows } = await pool.query('SELECT id FROM users WHERE id = $1', [req.user.id]);
+          if (uRows.length > 0) staffUserId = req.user.id;
+        }
+        await pool.query(
+          `INSERT INTO history_logs (id, user_id, booking_id, action, details) VALUES ($1, $2, $3, $4, $5)`,
+          [
+            uuidv4(),
+            staffUserId,
+            booking_id,
+            'Recorded Payment',
+            `Online Payment of ₹${parseFloat(amount).toLocaleString('en-IN')} successfully verified via RAZORPAY (Payment ID: ${razorpay_payment_id}) for devotee "${bName}"${bCode}.`
+          ]
+        );
+      } catch (logErr) {
+        console.warn('Online payment audit log warning:', logErr.message);
+      }
+
       return res.json({ success: true, payment: rows[0] });
     } catch (err) {
       console.error('Error [verifyRazorpaySignature]:', err);

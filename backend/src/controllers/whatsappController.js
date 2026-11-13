@@ -29,7 +29,7 @@ function buildDateQuery(pairs, startIndex = 1) {
 }
 
 async function sendBatch(req, res) {
-  const { date: exactDate, fromDate, toDate, lang } = req.body;
+  const { date: exactDate, fromDate, toDate, lang, selectedBookingIds } = req.body;
   const isTamil = lang === 'ta';
   
   let campaignName = (fromDate || exactDate);
@@ -71,11 +71,15 @@ async function sendBatch(req, res) {
       params
     );
 
+    const targetRows = (Array.isArray(selectedBookingIds) && selectedBookingIds.length > 0)
+      ? rows.filter(r => selectedBookingIds.includes(r.id))
+      : rows;
+
     const results = [];
     const failures = [];
 
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
+    for (let i = 0; i < targetRows.length; i++) {
+      const row = targetRows[i];
 
       const kDate = String(row.kattalai_date).padStart(2, '0');
       const kMonth = String(row.kattalai_month).padStart(2, '0');
@@ -183,10 +187,10 @@ async function sendBatch(req, res) {
         failures.push({ name: row.name, mobile: mobileNumber, error });
       }
 
-      if (i < rows.length - 1) {
+      if (i < targetRows.length - 1) {
         await sleep(100);
       }
-      if ((i + 1) % 50 === 0 && i < rows.length - 1) {
+      if ((i + 1) % 50 === 0 && i < targetRows.length - 1) {
         await sleep(2000);
       }
     }
@@ -285,4 +289,20 @@ async function previewBatch(req, res) {
   }
 }
 
-module.exports = { sendBatch, getHistory, previewBatch };
+async function triggerAutomation(req, res) {
+  if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin')) {
+    return res.status(403).json({ error: 'Unauthorized. Only Admins can trigger automation.' });
+  }
+
+  try {
+    const { runDailyAutomation } = require('../services/whatsappAutomationService');
+    const staffIdentifier = req.user.name ? `${req.user.name} (${req.user.role})` : req.user.role;
+    const result = await runDailyAutomation(`Manual Trigger by ${staffIdentifier}`);
+    res.json(result);
+  } catch (err) {
+    console.error('Error [whatsappController.triggerAutomation]:', err);
+    res.status(500).json({ error: err.message || 'Failed to trigger automation' });
+  }
+}
+
+module.exports = { sendBatch, getHistory, previewBatch, triggerAutomation };

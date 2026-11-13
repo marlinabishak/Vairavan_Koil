@@ -20,6 +20,7 @@ export default function WhatsAppDashboard() {
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null);
   const [error, setError] = useState(null);
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
 
   // History State
   const [history, setHistory] = useState([]);
@@ -65,6 +66,11 @@ export default function WhatsAppDashboard() {
     try {
       const data = await api.whatsappPreview(fromDate, toDate);
       setPreview(data);
+      if (data && data.users) {
+        setSelectedUserIds(data.users.map(u => u.id));
+      } else {
+        setSelectedUserIds([]);
+      }
     } catch (err) {
       setError(err.message || 'Failed to load preview');
     } finally {
@@ -72,14 +78,29 @@ export default function WhatsAppDashboard() {
     }
   };
 
+  const handleToggleUser = (id) => {
+    setSelectedUserIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (!preview || !preview.users) return;
+    if (selectedUserIds.length === preview.users.length) {
+      setSelectedUserIds([]);
+    } else {
+      setSelectedUserIds(preview.users.map(u => u.id));
+    }
+  };
+
   const handleSend = async (lang) => {
-    if (!preview || preview.count === 0) return;
+    if (!preview || preview.count === 0 || selectedUserIds.length === 0) return;
 
     setSending(true);
     setError(null);
     
     try {
-      const data = await api.whatsappSendBatch({ fromDate, toDate, lang });
+      const data = await api.whatsappSendBatch({ fromDate, toDate, lang, selectedBookingIds: selectedUserIds });
       setSendResult(data);
     } catch (err) {
       setError(err.message);
@@ -323,18 +344,18 @@ export default function WhatsAppDashboard() {
 
                     <button
                       onClick={() => handleSend('en')}
-                      disabled={preview.count === 0}
+                      disabled={preview.count === 0 || selectedUserIds.length === 0 || sending}
                       className="px-4 py-2 bg-[#1976d2] hover:bg-[#1565c0] text-white rounded-full text-xs font-bold disabled:opacity-50 shadow-sm transition-all"
                     >
-                      Send English
+                      {sending ? 'Sending...' : `Send English (${selectedUserIds.length})`}
                     </button>
 
                     <button
                       onClick={() => handleSend('ta')}
-                      disabled={preview.count === 0}
+                      disabled={preview.count === 0 || selectedUserIds.length === 0 || sending}
                       className="px-4 py-2 bg-[#2e7d32] hover:bg-[#256828] text-white rounded-full text-xs font-bold disabled:opacity-50 shadow-sm transition-all"
                     >
-                      Send Tamil
+                      {sending ? 'Sending...' : `Send Tamil (${selectedUserIds.length})`}
                     </button>
                   </div>
                 </div>
@@ -357,13 +378,22 @@ export default function WhatsAppDashboard() {
                         const star = isTa ? (u.star_ta || u.star) : u.star;
 
                         return (
-                          <div key={u.id} className="bg-white p-3.5 rounded-[16px] border border-[#ebdccb] shadow-2xs flex flex-col gap-2">
+                          <div key={u.id} className={`bg-white p-3.5 rounded-[16px] border border-[#ebdccb] shadow-2xs flex flex-col gap-2 transition-all ${selectedUserIds.includes(u.id) ? 'ring-1 ring-[#5c292c]/20' : 'opacity-60 bg-gray-50/50'}`}>
                             <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <p className="font-bold text-gray-900 text-sm">{name}</p>
-                                <p className="text-xs text-gray-500 font-mono mt-0.5">
-                                  {u.whatsapp_number || u.mobile || '-'} • <span className="text-[#5c292c] font-bold">{u.code}</span>
-                                </p>
+                              <div className="flex items-start gap-2.5">
+                                <input
+                                  type="checkbox"
+                                  title={`Select ${name}`}
+                                  checked={selectedUserIds.includes(u.id)}
+                                  onChange={() => handleToggleUser(u.id)}
+                                  className="w-4 h-4 mt-0.5 rounded text-[#5c292c] focus:ring-[#5c292c] border-[#ebdccb] cursor-pointer accent-[#5c292c]"
+                                />
+                                <div>
+                                  <p className="font-bold text-gray-900 text-sm">{name}</p>
+                                  <p className="text-xs text-gray-500 font-mono mt-0.5">
+                                    {u.whatsapp_number || u.mobile || '-'} • <span className="text-[#5c292c] font-bold">{u.code}</span>
+                                  </p>
+                                </div>
                               </div>
                               <button
                                 onClick={() => {
@@ -400,6 +430,15 @@ export default function WhatsAppDashboard() {
                       <table className="min-w-full divide-y divide-[#ebdccb] text-xs">
                         <thead className="bg-[#f7f1e5] sticky top-0 text-[#5c292c]">
                           <tr>
+                            <th className="px-3 py-2.5 text-center font-bold w-10">
+                              <input
+                                type="checkbox"
+                                title="Select / Deselect All"
+                                checked={preview.users?.length > 0 && selectedUserIds.length === preview.users.length}
+                                onChange={handleSelectAll}
+                                className="w-4 h-4 rounded text-[#5c292c] focus:ring-[#5c292c] border-[#ebdccb] cursor-pointer accent-[#5c292c]"
+                              />
+                            </th>
                             {/* Hidden for now to avoid table scroll - re-enable later
                             <th className="px-3 py-2.5 text-left font-bold whitespace-nowrap">Mobile</th>
                             */}
@@ -429,8 +468,19 @@ export default function WhatsAppDashboard() {
                             if (ktName.toLowerCase().includes('uchi') || ktName.includes('உச்சி')) poojaTime = '11:30 AM';
                             else if (ktName.toLowerCase().includes('artha') || ktName.includes('அர்த்த')) poojaTime = '07:30 PM';
 
+                            const isSelected = selectedUserIds.includes(u.id);
+
                             return (
-                              <tr key={u.id} className="hover:bg-[#faf6f0] transition-colors">
+                              <tr key={u.id} className={`transition-colors ${isSelected ? 'hover:bg-[#faf6f0]' : 'opacity-60 bg-gray-50/40 hover:bg-gray-100/50'}`}>
+                                <td className="px-3 py-2 text-center">
+                                  <input
+                                    type="checkbox"
+                                    title={`Select ${u.name}`}
+                                    checked={isSelected}
+                                    onChange={() => handleToggleUser(u.id)}
+                                    className="w-4 h-4 rounded text-[#5c292c] focus:ring-[#5c292c] border-[#ebdccb] cursor-pointer accent-[#5c292c]"
+                                  />
+                                </td>
                                 {/* Hidden for now to avoid table scroll - re-enable later
                                 <td className="px-3 py-2 whitespace-nowrap font-mono text-gray-700">{u.whatsapp_number || u.mobile || '-'}</td>
                                 */}
@@ -630,14 +680,14 @@ export default function WhatsAppDashboard() {
 
       {/* Individual User Preview Modal */}
       {selectedUserPreview && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-[100] p-3 sm:p-4 animate-fade-in overflow-y-auto">
-          <div className="bg-[#f7f1e5] border border-[#ebdccb] rounded-[26px] shadow-2xl w-full max-w-[580px] my-auto overflow-hidden font-barlow relative flex flex-col">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[99999] p-3 sm:p-5 animate-fade-in overflow-y-auto">
+          <div className="bg-[#f7f1e5] border border-[#ebdccb] rounded-[24px] shadow-2xl w-full max-w-[560px] max-h-[92vh] my-auto overflow-hidden font-barlow relative flex flex-col">
             
             {/* Modal Header */}
-            <div className="px-5 py-2.5 border-b border-[#ebdccb] bg-[#fbf9f6] flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-xs">
-                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+            <div className="px-5 py-3 border-b border-[#ebdccb] bg-[#fbf9f6] flex items-center justify-between shrink-0 shadow-2xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-xs shrink-0">
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                     <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.694.06-2.146-.541-1.748-.724-2.884-2.496-2.971-2.612-.088-.117-.714-.951-.714-1.815 0-.865.454-1.29.615-1.465.162-.175.353-.219.47-.219.118 0 .236.002.338.007.108.005.253-.041.396.301.147.351.503 1.229.547 1.319.044.09.073.195.015.312-.059.117-.088.19-.176.293-.088.102-.186.228-.266.307-.088.087-.18.182-.077.359.103.175.458.756.983 1.224.676.602 1.246.788 1.423.876.176.088.279.073.382-.044.103-.117.441-.513.559-.689.118-.175.235-.146.397-.088.162.058 1.029.485 1.206.573.176.088.294.132.338.205.044.073.044.424-.1.829z" />
                   </svg>
                 </div>
@@ -650,7 +700,7 @@ export default function WhatsAppDashboard() {
                   <button
                     type="button"
                     onClick={() => setModalLang('ta')}
-                    className={`px-2.5 py-0.5 text-xs font-bold rounded-full transition-all ${
+                    className={`px-2.5 py-0.5 text-xs font-bold rounded-full transition-all cursor-pointer ${
                       (modalLang || previewLang) === 'ta'
                         ? 'bg-[#5c292c] text-white shadow-xs'
                         : 'text-gray-600 hover:text-gray-900'
@@ -661,7 +711,7 @@ export default function WhatsAppDashboard() {
                   <button
                     type="button"
                     onClick={() => setModalLang('en')}
-                    className={`px-2.5 py-0.5 text-xs font-bold rounded-full transition-all ${
+                    className={`px-2.5 py-0.5 text-xs font-bold rounded-full transition-all cursor-pointer ${
                       (modalLang || previewLang) === 'en'
                         ? 'bg-[#5c292c] text-white shadow-xs'
                         : 'text-gray-600 hover:text-gray-900'
@@ -672,16 +722,17 @@ export default function WhatsAppDashboard() {
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => setSelectedUserPreview(null)}
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-gray-500 hover:text-[#5c292c] hover:bg-black/5"
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-gray-500 hover:text-[#5c292c] hover:bg-black/5 cursor-pointer"
                 >
                   ✕
                 </button>
               </div>
             </div>
             
-            {/* Modal Body: Realistic WhatsApp chat container */}
-            <div className="p-3.5 sm:p-4 bg-[#efeae2]">
+            {/* Modal Body: Realistic WhatsApp chat container with scrolling */}
+            <div className="p-3.5 sm:p-5 bg-[#efeae2] overflow-y-auto flex-1">
               {(() => {
                 const u = selectedUserPreview;
                 const isTa = (modalLang || previewLang) === 'ta';
@@ -708,8 +759,9 @@ export default function WhatsAppDashboard() {
 
                 const name = (isTa ? (u.name_ta || u.name) : u.name || '').trim();
                 const place = (isTa ? (u.place_ta || u.place) : u.place || '').trim();
-                const title = (isTa ? (u.title_ta || u.title) : u.title || '').trim();
-                const star = (isTa ? (u.star_ta || u.star) : u.star || '').trim();
+                const rawTitle = (isTa ? (u.title_ta || u.title) : u.title || '').trim();
+                const formattedTitle = rawTitle ? `${rawTitle.replace(/\.*$/, '').trim()}. ` : '';
+                const star = (isTa ? (u.star_ta || u.star) : u.star || '').trim().replace(/,\s*$/, '');
                 const code = u.code || '-';
 
                 return (
@@ -725,7 +777,7 @@ export default function WhatsAppDashboard() {
                         </p>
 
                         <p>
-                          <strong>{title ? `${title}.` : ''}{name}</strong> அவர்களுக்கு, வணக்கம்.<br />
+                          <strong>{formattedTitle}{name}</strong> அவர்களுக்கு, வணக்கம்.<br />
                           🙏🏻🙏🏻🙏🏻
                         </p>
 
@@ -760,7 +812,7 @@ export default function WhatsAppDashboard() {
                         </p>
 
                         <p>
-                          <strong>{title ? `${title}.` : ''}{name}</strong> Avargal,
+                          <strong>{formattedTitle}{name}</strong> Avargal,
                         </p>
 
                         <p>

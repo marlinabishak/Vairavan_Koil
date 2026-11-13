@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../api/client.js';
 import TamilDetailsModal from '../components/TamilDetailsModal.jsx';
+import OnlinePaymentModal from '../components/OnlinePaymentModal.jsx';
 import Combobox from '../components/Combobox.jsx';
 import { COUNTRY_CODES } from '../components/BookingModal.jsx';
 import { calculateKattalaiFee } from '../utils/kattalaiFee.js';
@@ -47,7 +48,7 @@ const DEFAULT_OPTIONS = {
 };
 
 const DEFAULT_KATTALAI_TYPES = [
-  { id: 'morning_default', name: 'Uchikala Kattalai', name_ta: 'உச்சிகால கட்டளை', color_key: 'morning', max_slots: 4, default_amount: 1000 },
+  { id: 'morning_default', name: 'Uchikala Kattalai', name_ta: 'உச்சிக்கால கட்டளை', color_key: 'morning', max_slots: 4, default_amount: 1000 },
   { id: 'evening_default', name: 'Arthajama Kattalai', name_ta: 'அர்த்தஜாம கட்டளை', color_key: 'evening-blue', max_slots: 4, default_amount: 1000 }
 ];
 
@@ -71,6 +72,7 @@ export default function Signup() {
     kat_type: DEFAULT_OPTIONS.kat_type 
   });
   const [showTamilModal, setShowTamilModal] = useState(false);
+  const [onlinePaymentConfig, setOnlinePaymentConfig] = useState(null);
   const [feeSettings, setFeeSettings] = useState({
     baseAmount: 3500,
     archanaiFee: 200
@@ -192,7 +194,24 @@ export default function Signup() {
     setShowTamilModal(true);
   };
 
-  const handleFinalSubmit = async (tamilData) => {
+  const handleFinalSubmit = (tamilData) => {
+    const amountToPay = (tamilData.amount !== undefined && tamilData.amount !== '') 
+      ? parseFloat(tamilData.amount) 
+      : feeDetails.totalAmount;
+
+    setOnlinePaymentConfig({
+      isOpen: true,
+      amount: amountToPay,
+      purpose: `Nithiya Kattalai Registration (${formData.code || 'Slot'})`,
+      devoteeName: formData.name,
+      officeCode: formData.code,
+      onSuccess: async (paymentDetails) => {
+        await executeBookingRegistration(tamilData, amountToPay, paymentDetails);
+      }
+    });
+  };
+
+  const executeBookingRegistration = async (tamilData, amountToPay, paymentDetails) => {
     try {
       const smartSplit = (addr, place = '') => {
         if (!addr) return [];
@@ -275,11 +294,6 @@ export default function Signup() {
         }
       }
       bookingData.kattalai_type_id = selectedTypeId;
-
-      const amountToPay = (tamilData.amount !== undefined && tamilData.amount !== '') 
-        ? parseFloat(tamilData.amount) 
-        : feeDetails.totalAmount;
-
       bookingData.amount = amountToPay;
       bookingData.comments = tamilData.comments || '';
 
@@ -287,50 +301,20 @@ export default function Signup() {
 
       if (amountToPay > 0) {
         try {
-          await api.createPayment({ booking_id: booking.id, amount: amountToPay, method: 'cash' });
+          await api.createPayment({
+            booking_id: booking.id,
+            amount: amountToPay,
+            method: 'online',
+            transaction_ref: paymentDetails?.paymentId || `pay_${Date.now()}`
+          });
         } catch (payErr) {
           console.warn('Payment recording note:', payErr);
         }
       }
 
-      // Try Razorpay online payment if real keys are configured
-      try {
-        if (amountToPay > 0 && typeof window !== 'undefined' && window.Razorpay) {
-          const orderData = await api.createRazorpayOrder({ booking_id: booking.id, amount: amountToPay });
-          if (orderData && orderData.id && !orderData.is_mock) {
-            const options = {
-              key: 'dummy_key_id', 
-              amount: orderData.amount,
-              currency: orderData.currency,
-              name: "Vairavan Kovil",
-              description: "Nithiya Kattalai Registration",
-              order_id: orderData.id,
-              handler: async function (response) {
-                try {
-                  await api.verifyRazorpaySignature({
-                    razorpay_order_id: response.razorpay_order_id,
-                    razorpay_payment_id: response.razorpay_payment_id,
-                    razorpay_signature: response.razorpay_signature,
-                    booking_id: booking.id,
-                    amount: amountToPay
-                  });
-                } catch (vErr) {
-                  console.warn('Payment verification note:', vErr);
-                }
-              },
-              prefill: { name: formData.name, email: formData.email, contact: formData.mobile },
-              theme: { color: "#5c292c" }
-            };
-            const rzp1 = new window.Razorpay(options);
-            rzp1.open();
-          }
-        }
-      } catch (rzpErr) {
-        console.warn('Online payment gateway note:', rzpErr);
-      }
-
-      alert("Nithiya Kattalai registration successful! The slot is now confirmed.");
+      setOnlinePaymentConfig(null);
       setShowTamilModal(false);
+      alert(`Nithiya Kattalai registration successful! Online Payment of ₹${amountToPay.toLocaleString('en-IN')} confirmed (Ref: ${paymentDetails?.paymentId || 'Verified'}). Office Code: ${booking.code || formData.code}. The slot is now confirmed.`);
       setFormData(f => ({
         ...f,
         title: '',
@@ -423,7 +407,7 @@ export default function Signup() {
                   }
                 }}
                 disabled={isBooked}
-                className={`w-[36px] h-[36px] sm:w-[38px] sm:h-[38px] rounded-full border-2 flex items-center justify-center font-bold text-[14px] sm:text-[15px] transition-all duration-300 ${
+                className={`w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] rounded-full border-2 flex items-center justify-center font-bold text-[13.5px] sm:text-[14px] transition-all duration-300 ${
                   isBooked 
                     ? 'opacity-30 cursor-not-allowed bg-gray-200 border-gray-300 text-gray-400 pointer-events-none' 
                     : isSelected 
@@ -446,58 +430,60 @@ export default function Signup() {
     );
   };
 
-  const inputClass = "h-[40px] px-4 rounded-full border border-[#e2d8cb] bg-white font-barlow text-[14px] text-gray-800 placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] transition-all w-full shadow-sm hover:border-[#cfc2b2]";
+  const inputClass = "h-[38px] px-3.5 rounded-full border border-[#e2d8cb] bg-white font-barlow text-[13.5px] text-gray-800 placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] transition-all w-full shadow-sm hover:border-[#cfc2b2]";
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[85vh] px-2 sm:px-4 py-4 sm:py-8 relative z-10 w-full max-w-full overflow-x-hidden">
-      <div className="bg-[#f7f1e5] border border-[#ebdccb] p-3 sm:p-6 md:p-8 rounded-[20px] sm:rounded-[28px] shadow-[0_20px_50px_-10px_rgba(70,40,20,0.2)] w-full max-w-[1080px] box-border transition-all">
+    <div className="flex flex-col items-center justify-center min-h-screen md:min-h-full md:h-full py-2 sm:py-3 px-2 sm:px-4 relative z-10 w-full max-w-full">
+      <div className="bg-[#f7f1e5] border border-[#ebdccb] p-3 sm:p-4.5 lg:p-5 rounded-[20px] sm:rounded-[24px] shadow-[0_20px_50px_-10px_rgba(70,40,20,0.2)] w-full max-w-[1020px] box-border transition-all my-auto">
         
         {/* Header */}
-        <div className="flex flex-col items-center mb-5 sm:mb-6">
-          <img src="/logo.svg" alt="Vairavan Koil" className="w-[160px] sm:w-[180px] h-auto mb-2 drop-shadow-sm" />
-          <h2 className="text-[22px] sm:text-[26px] font-barlow font-bold text-center text-[#5c292c] tracking-tight">
+        <div className="flex flex-col items-center mb-2.5 sm:mb-3">
+          <img src="/logo.svg" alt="Vairavan Koil" className="w-[140px] sm:w-[155px] h-auto mb-1.5 drop-shadow-sm" />
+          <h2 className="text-[20px] sm:text-[22px] font-barlow font-bold text-center text-[#5c292c] tracking-tight">
             Kattalaithaarar Registration
           </h2>
         </div>
 
-        <form onSubmit={handleSignup} className="flex flex-col lg:flex-row items-stretch gap-4 sm:gap-6 font-barlow w-full mx-auto">
+        <form onSubmit={handleSignup} className="flex flex-col lg:flex-row items-stretch gap-3 sm:gap-4 font-barlow w-full mx-auto">
             
           {/* Left Column: Date & Slot Picker */}
-          <div className="w-full lg:w-[38%] flex flex-col gap-4 bg-white/90 p-4 sm:p-5 rounded-[20px] sm:rounded-[22px] border border-[#e8ded2] shadow-sm">
-            <label className="block text-[#5c292c] font-bold text-[14px]">1. Select Nithiya Kattalai Date</label>
-            <div className="flex">
-              <input 
-                type="date" 
-                className={`${inputClass} cursor-pointer w-full`} 
-                value={selectedBookingDate} 
-                onChange={(e) => { 
-                  setSelectedBookingDate(e.target.value); 
-                  setFormData(f => ({ ...f, code: '', kattalai_type_id: '' })); 
-                }} 
-                required 
-              />
+          <div className="w-full lg:w-[36%] flex flex-col justify-between gap-2.5 bg-white/90 p-3.5 sm:p-4 rounded-[18px] sm:rounded-[20px] border border-[#e8ded2] shadow-sm">
+            <div>
+              <label className="block text-[#5c292c] font-bold text-[13px] mb-1">1. Select Nithiya Kattalai Date</label>
+              <div className="flex">
+                <input 
+                  type="date" 
+                  className={`${inputClass} cursor-pointer w-full`} 
+                  value={selectedBookingDate} 
+                  onChange={(e) => { 
+                    setSelectedBookingDate(e.target.value); 
+                    setFormData(f => ({ ...f, code: '', kattalai_type_id: '' })); 
+                  }} 
+                  required 
+                />
+              </div>
             </div>
             
-            <div className="border-t border-[#ebdccb] pt-4 mt-1 flex-1">
-              <label className="block text-[#5c292c] font-bold text-[14px] mb-3">2. Pick an Available Slot</label>
+            <div className="border-t border-[#ebdccb] pt-2.5 mt-0.5 flex-1">
+              <label className="block text-[#5c292c] font-bold text-[13px] mb-2">2. Pick an Available Slot</label>
               <div className="flex gap-2 sm:gap-4 justify-center items-start">
                 {renderSlots(uchikalaType, 'U')}
-                <div className="w-[1px] bg-[#e8ded2] self-stretch min-h-[100px]"></div>
+                <div className="w-[1px] bg-[#e8ded2] self-stretch min-h-[90px]"></div>
                 {renderSlots(arthajamaType, 'A')}
               </div>
             </div>
             
             {formData.code && (
-              <div className="text-center text-[13px] sm:text-[13.5px] text-[#2c7a35] font-bold mt-2 bg-[#ebfaee] py-2 px-3 sm:px-4 rounded-full border border-[#bbf0c8] shadow-sm flex items-center justify-center gap-1.5 sm:gap-2">
-                Selected Code: <span className="text-[15px] sm:text-[16px] tracking-wide font-extrabold">{formData.code}</span>
+              <div className="text-center text-[12.5px] sm:text-[13px] text-[#2c7a35] font-bold mt-1 bg-[#ebfaee] py-1.5 px-3 rounded-full border border-[#bbf0c8] shadow-sm flex items-center justify-center gap-1.5">
+                Selected Code: <span className="text-[14.5px] sm:text-[15px] tracking-wide font-extrabold">{formData.code}</span>
               </div>
             )}
           </div>
 
           {/* Right Column: Details */}
-          <div className="w-full lg:w-[62%] flex flex-col justify-between bg-white/90 p-4 sm:p-5 md:p-6 rounded-[20px] sm:rounded-[22px] border border-[#e8ded2] shadow-sm">
-            <div className="flex flex-col gap-3.5">
-              <label className="block text-[#5c292c] font-bold text-[14px] border-b border-[#ebdccb] pb-2">3. Enter Your Details</label>
+          <div className="w-full lg:w-[64%] flex flex-col justify-between bg-white/90 p-3.5 sm:p-4.5 rounded-[18px] sm:rounded-[20px] border border-[#e8ded2] shadow-sm">
+            <div className="flex flex-col gap-2.5">
+              <label className="block text-[#5c292c] font-bold text-[13px] border-b border-[#ebdccb] pb-1.5">3. Enter Your Details</label>
 
               {/* Mobile View: Dedicated touch-friendly layout (< sm screens, no cramped fields) */}
               <div className="sm:hidden flex flex-col gap-3">
@@ -631,9 +617,9 @@ export default function Signup() {
               </div>
 
               {/* Desktop / Tablet View (sm and above) */}
-              <div className="hidden sm:flex flex-col gap-3.5">
+              <div className="hidden sm:flex flex-col gap-2.5">
                 {/* Row 1: Title, Name, Star */}
-                <div className="flex gap-2.5 relative h-[40px] z-30">
+                <div className="flex gap-2.5 relative h-[38px] z-30">
                   <Combobox 
                     className="w-[28%] h-full" 
                     placeholder="Title" 
@@ -654,7 +640,7 @@ export default function Signup() {
                 </div>
 
                 {/* Row 2: Place, Sponsorship, Mobile */}
-                <div className="flex gap-2.5 relative h-[40px] z-20">
+                <div className="flex gap-2.5 relative h-[38px] z-20">
                   <Combobox 
                     className="w-[32%] h-full" 
                     placeholder="Place" 
@@ -679,7 +665,7 @@ export default function Signup() {
                 </div>
 
                 {/* Row 3: WhatsApp & Email (Balanced 50/50) */}
-                <div className="grid grid-cols-2 gap-2.5 relative h-[40px] z-10">
+                <div className="grid grid-cols-2 gap-2.5 relative h-[38px] z-10">
                   <div className="flex items-center w-full h-full rounded-full border border-[#e2d8cb] bg-white focus-within:border-[#5c292c] focus-within:ring-1 focus-within:ring-[#5c292c] transition-all shadow-sm">
                     <div className="relative flex items-center w-[54px] shrink-0 h-full border-r border-[#ebdccb]">
                       <select
@@ -721,7 +707,7 @@ export default function Signup() {
                 </div>
 
                 {/* Combined Addresses */}
-                <div className="flex flex-col gap-3 mt-0.5">
+                <div className="flex flex-col gap-2 mt-0.5">
                   <input 
                     className={inputClass} 
                     placeholder="Permanent Address (e.g. Street, Area, City, Pin)" 
@@ -730,7 +716,7 @@ export default function Signup() {
                     required 
                   />
                   
-                  <div className="relative w-full h-[40px]">
+                  <div className="relative w-full h-[38px]">
                     <input 
                       className={`${inputClass} pr-[165px] h-full`} 
                       placeholder="Communication Address" 
@@ -752,10 +738,10 @@ export default function Signup() {
 
             </div>
 
-            <div className="mt-5">
+            <div className="mt-3 flex flex-col items-center">
               <button 
                 type="submit" 
-                className={`w-full h-[42px] rounded-full font-barlow font-bold text-[16px] transition-all duration-300 shadow-sm ${
+                className={`w-full h-[40px] rounded-full font-barlow font-bold text-[15px] sm:text-[16px] transition-all duration-300 shadow-sm flex items-center justify-center gap-2 ${
                   isFormValid 
                     ? 'bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow cursor-pointer active:scale-[0.99]' 
                     : 'bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow cursor-pointer'
@@ -769,7 +755,7 @@ export default function Signup() {
           </div>
         </form>
 
-        <div className="mt-6 text-center text-sm font-barlow">
+        <div className="mt-3 sm:mt-4 text-center text-xs sm:text-sm font-barlow">
           <span className="text-[#786c62]">Already registered as a devotee? </span>
           <Link to="/login" className="text-[#f37435] hover:text-[#d05c24] font-semibold transition-colors">
             Sign In here
@@ -789,6 +775,18 @@ export default function Signup() {
             isWithinSixMonths: feeDetails.isWithinSixMonths
           }}
         />
+
+        {onlinePaymentConfig && (
+          <OnlinePaymentModal
+            isOpen={onlinePaymentConfig.isOpen}
+            onClose={() => setOnlinePaymentConfig(null)}
+            onSuccess={onlinePaymentConfig.onSuccess}
+            amount={onlinePaymentConfig.amount}
+            purpose={onlinePaymentConfig.purpose}
+            devoteeName={onlinePaymentConfig.devoteeName}
+            officeCode={onlinePaymentConfig.officeCode}
+          />
+        )}
       </div>
     </div>
   );

@@ -205,7 +205,7 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
     const s_ta = initialData?.star_ta || translateStarToTamil(englishData?.star) || '';
     const p_ta = initialData?.place_ta || translatePlaceToTamil(englishData?.place) || '';
     const n_ta = initialData?.name_ta || englishData?.name || '';
-    const amt = initialData?.amount || englishData?.amount || 1000;
+    const amt = initialData?.amount || englishData?.amount || 3500;
     const cmt = initialData?.comments || englishData?.comments || 'Online Nithiya Kattalai Registration';
     return {
       title_ta: t_ta,
@@ -444,6 +444,34 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
             />
           </div>
 
+          {/* Transparent Payment & Fee Breakdown Card */}
+          {englishData?.isTransfer && (
+            <div className="bg-[#faf8f5] border border-[#ebdccb] rounded-[18px] p-3.5 text-xs font-barlow shadow-xs">
+              <div className="flex items-center justify-between font-bold text-[#5c292c] pb-2 border-b border-[#ebdccb]/70">
+                <span className="flex items-center gap-1.5 text-[13px]">
+                  <span>1-Time Account Transfer Difference Fee</span>
+                </span>
+                <span className="text-[15px] font-bold text-[#c2410c]">
+                  ₹{Number(englishData.amount || 2300).toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-2 pt-0.5 text-[11.5px] text-gray-700">
+                <div className="flex flex-col">
+                  <span className="text-gray-500 text-[10.5px]">Current Endowment Rate</span>
+                  <span className="font-semibold text-gray-900">₹{Number(englishData.currentRate || 3500).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex flex-col text-right">
+                  <span className="text-gray-500 text-[10.5px]">Prior Historical Deposit</span>
+                  <span className="font-semibold text-emerald-700">-₹{Number(englishData.oldPaidAmount || 1200).toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-[#c2410c] font-bold text-xs pt-2 border-t border-[#ebdccb]/60 mt-2 bg-orange-50/60 -mx-3.5 -mb-3.5 px-3.5 py-2 rounded-b-[18px]">
+                <span>Total Difference Payable:</span>
+                <span className="text-sm font-extrabold">₹{Number(englishData.amount || 2300).toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+          )}
+
           {/* Validation Banner if errors exist */}
           {Object.keys(errors).length > 0 && (
             <div className="flex items-center justify-center gap-1.5 text-red-600 text-[12px] font-barlow font-medium bg-red-50/90 py-1.5 px-3.5 rounded-full border border-red-200 self-center mt-0.5">
@@ -463,10 +491,10 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
             </button>
             <button
               type="submit"
-              className="flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-9 h-[38px] rounded-full shadow-md bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow-lg cursor-pointer active:scale-[0.99]"
-              title={initialData?.name_ta ? "Update Details" : "Pay"}
+              className="flex items-center justify-center gap-1.5 font-barlow font-bold text-[15px] transition-all px-8 h-[40px] rounded-full shadow-md bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow-lg cursor-pointer active:scale-[0.99]"
+              title={initialData?.id ? "Update Details" : "Pay"}
             >
-              {initialData?.name_ta ? "Update Details" : "Pay"}
+              {initialData?.id ? "Update Details" : "Pay"}
             </button>
           </div>
         </form>

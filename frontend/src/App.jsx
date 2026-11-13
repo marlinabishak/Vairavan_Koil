@@ -12,6 +12,7 @@ import MyHistory from './pages/MyHistory.jsx';
 import WhatsAppDashboard from './pages/WhatsAppDashboard.jsx';
 import Profiles from './pages/Profiles.jsx';
 import BugReportsPage from './pages/BugReportsPage.jsx';
+import ThurithaKattalaiRegister from './pages/ThurithaKattalaiRegister.jsx';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -69,6 +70,8 @@ export default function App() {
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/thuritha-kattalai-register" element={<ThurithaKattalaiRegister />} />
+            <Route path="/thani-archanai-register" element={<ThurithaKattalaiRegister />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/history" element={<History />} />
             <Route path="/requests" element={<RequestsPage />} />

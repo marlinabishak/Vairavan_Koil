@@ -100,7 +100,10 @@ app.get('/api/diagnose', async (req, res) => {
 
 app.use('/api', apiRoutes);
 
+const { initScheduler } = require('./services/whatsappAutomationService');
+
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Vairavan Kovil API running on port ${PORT}`);
+  initScheduler();
 });

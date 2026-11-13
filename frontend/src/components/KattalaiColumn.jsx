@@ -10,10 +10,12 @@ import { useAuth } from '../context/AuthContext';
  */
 export default function KattalaiColumn({ kattalaiType, bookings = [], onTogglePresent, onEdit, onAddNew, highlightedBookingId }) {
   const { user } = useAuth();
-  const canAdd = user && user.role !== 'user' && user.role !== 'ulthurai';
+  const isArchanai = kattalaiType.color_key === 'archanai';
+  // Staff can add new slots; for Thuritha Kattalai, ulthurai can also add walk-ins
+  const canAdd = user && user.role !== 'user' && (user.role !== 'ulthurai' || isArchanai);
 
   const maxSlots = Math.max(kattalaiType.max_slots || 4, bookings.length);
-  const prefix = kattalaiType.color_key === 'morning' ? 'U' : 'A';
+  const prefix = kattalaiType.color_key === 'morning' ? 'U' : (isArchanai ? 'TK' : 'A');
 
   // Map each slot 1..maxSlots to an existing booking or empty
   const slotMap = {};
@@ -21,14 +23,21 @@ export default function KattalaiColumn({ kattalaiType, bookings = [], onTogglePr
 
   bookings.forEach((b) => {
     let assigned = false;
-    if (b.code) {
+    if (isArchanai && b.slot) {
+      const s = parseInt(b.slot, 10);
+      if (s >= 1 && s <= maxSlots && !slotMap[s]) {
+        slotMap[s] = b;
+        assigned = true;
+      }
+    } else if (b.code) {
       const m = b.code.trim().match(/^([A-Za-z]+)\/(\d+)/);
       if (m) {
         const p = m[1].toUpperCase();
         const s = parseInt(m[2], 10);
         const isPrefixMatch = p === prefix || 
           (prefix === 'U' && (p === 'UK' || p === 'U')) || 
-          (prefix === 'A' && (p === 'AJ' || p === 'A'));
+          (prefix === 'A' && (p === 'AJ' || p === 'A')) ||
+          (prefix === 'TK' && (p === 'TK' || p === 'T'));
         if (isPrefixMatch && s >= 1 && s <= maxSlots && !slotMap[s]) {
           slotMap[s] = b;
           assigned = true;
@@ -65,6 +74,7 @@ export default function KattalaiColumn({ kattalaiType, bookings = [], onTogglePr
         <AddKattalaiButton 
           key={`slot-${s}`} 
           colorKey={kattalaiType.color_key} 
+          label={isArchanai ? 'New Thuritha Kattalai' : 'New Nithiya Kattalai'}
           onClick={() => onAddNew(kattalaiType, s)} 
         />
       );
@@ -85,11 +95,13 @@ export default function KattalaiColumn({ kattalaiType, bookings = [], onTogglePr
     );
   }
 
+  const columnTitle = isArchanai ? 'Thuritha Kattalai' : kattalaiType.name;
+
   return (
     <div>
       {/* Section label: Barlow 400, 12px/14.4px, black */}
       <p className="font-barlow font-normal text-fig-12 text-fig-text" style={{ marginBottom: '5px' }}>
-        {kattalaiType.name}
+        {columnTitle}
       </p>
 
       {/* Stacked pills — 10px vertical gap between each */}

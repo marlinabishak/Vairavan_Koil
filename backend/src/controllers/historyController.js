@@ -1,26 +1,36 @@
 const pool = require('../db/pool');
 
-// Category mapping helper
+// Comprehensive Temple Administration Category Mapping Helper
 function getActionCategory(action) {
   if (!action) return 'general';
   if (action === 'Created Booking') return 'registrations';
-  if (action === 'Updated Devotee' || action.includes('Kattalai')) return 'updates';
+  if (action === 'Deleted Kattalai' || action === 'Requested Kattalai Deletion' || action.toLowerCase().includes('deletion')) return 'deletions';
+  if (action === 'Updated Devotee') return 'updates';
   if (action.includes('Present') || action.includes('Absent') || action.includes('Attendance')) return 'attendance';
   if (action.includes('WhatsApp')) return 'whatsapp';
-  if (action.includes('Printed Labels') || action.includes('Print')) return 'printing';
-  if (action.includes('TRANSFER') || action.includes('Edit Request') || action === 'REQUESTED_EDIT') return 'transfers_requests';
-  if (action.includes('Staff Profile') || action.includes('Panchangam') || action.includes('User') || action.includes('Power User')) return 'staff';
+  if (action.includes('Printed') || action.includes('Print')) return 'printing';
+  if (action.includes('TRANSFER') || action.includes('Transfer') || action.includes('Edit Request') || action === 'REQUESTED_EDIT') return 'transfers_requests';
+  if (action.includes('Payment') || action.includes('Receipt') || action.includes('Fee')) return 'finance';
+  if (action.includes('Power User') || action.includes('Staff Profile') || (action.includes('Staff') && !action.includes('Login'))) return 'committee_staff';
+  if (action.includes('Setting') || action.includes('Panchangam')) return 'settings_panchangam';
+  if (action.includes('Bug') || action.includes('Issue')) return 'bugs';
+  if (action.includes('Login') || action.includes('Password')) return 'security_logins';
   return 'general';
 }
 
 const categoryConditions = {
   registrations: `h.action IN ('Created Booking')`,
-  updates: `(h.action IN ('Updated Devotee') OR h.action LIKE '%Kattalai%')`,
+  deletions: `(h.action IN ('Deleted Kattalai', 'Requested Kattalai Deletion') OR h.action LIKE '%Deletion%')`,
+  updates: `h.action = 'Updated Devotee'`,
+  transfers_requests: `(h.action = 'ACCOUNT_TRANSFER' OR h.action LIKE '%Edit Request%' OR h.action = 'REQUESTED_EDIT' OR h.action LIKE '%Transfer%')`,
   attendance: `(h.action LIKE '%Present%' OR h.action LIKE '%Absent%' OR h.action LIKE '%Attendance%')`,
-  whatsapp: `h.action LIKE '%WhatsApp%'`,
   printing: `(h.action LIKE '%Printed%' OR h.action LIKE '%Print%')`,
-  transfers_requests: `(h.action = 'ACCOUNT_TRANSFER' OR h.action LIKE '%Edit Request%' OR h.action = 'REQUESTED_EDIT')`,
-  staff: `(h.action LIKE '%Staff Profile%' OR h.action LIKE '%Panchangam%' OR h.action LIKE '%User%' OR h.action LIKE '%Power User%')`
+  whatsapp: `h.action LIKE '%WhatsApp%'`,
+  finance: `(h.action LIKE '%Payment%' OR h.action LIKE '%Receipt%' OR h.action LIKE '%Fee%')`,
+  committee_staff: `(h.action LIKE '%Power User%' OR h.action LIKE '%Staff Profile%' OR (h.action LIKE '%Staff%' AND h.action NOT LIKE '%Login%'))`,
+  settings_panchangam: `(h.action LIKE '%Setting%' OR h.action LIKE '%Panchangam%')`,
+  bugs: `(h.action LIKE '%Bug%' OR h.action LIKE '%Issue%')`,
+  security_logins: `(h.action LIKE '%Login%' OR h.action LIKE '%Password%')`
 };
 
 // GET /api/history
@@ -98,12 +108,17 @@ async function listHistory(req, res) {
     const countSelects = [
       `COUNT(*) as all_count`,
       `SUM(CASE WHEN ${categoryConditions.registrations} THEN 1 ELSE 0 END) as registrations_count`,
+      `SUM(CASE WHEN ${categoryConditions.deletions} THEN 1 ELSE 0 END) as deletions_count`,
       `SUM(CASE WHEN ${categoryConditions.updates} THEN 1 ELSE 0 END) as updates_count`,
-      `SUM(CASE WHEN ${categoryConditions.attendance} THEN 1 ELSE 0 END) as attendance_count`,
-      `SUM(CASE WHEN ${categoryConditions.whatsapp} THEN 1 ELSE 0 END) as whatsapp_count`,
-      `SUM(CASE WHEN ${categoryConditions.printing} THEN 1 ELSE 0 END) as printing_count`,
       `SUM(CASE WHEN ${categoryConditions.transfers_requests} THEN 1 ELSE 0 END) as transfers_requests_count`,
-      `SUM(CASE WHEN ${categoryConditions.staff} THEN 1 ELSE 0 END) as staff_count`
+      `SUM(CASE WHEN ${categoryConditions.attendance} THEN 1 ELSE 0 END) as attendance_count`,
+      `SUM(CASE WHEN ${categoryConditions.printing} THEN 1 ELSE 0 END) as printing_count`,
+      `SUM(CASE WHEN ${categoryConditions.whatsapp} THEN 1 ELSE 0 END) as whatsapp_count`,
+      `SUM(CASE WHEN ${categoryConditions.finance} THEN 1 ELSE 0 END) as finance_count`,
+      `SUM(CASE WHEN ${categoryConditions.committee_staff} THEN 1 ELSE 0 END) as committee_staff_count`,
+      `SUM(CASE WHEN ${categoryConditions.settings_panchangam} THEN 1 ELSE 0 END) as settings_panchangam_count`,
+      `SUM(CASE WHEN ${categoryConditions.bugs} THEN 1 ELSE 0 END) as bugs_count`,
+      `SUM(CASE WHEN ${categoryConditions.security_logins} THEN 1 ELSE 0 END) as security_logins_count`
     ];
 
     const countQuery = `
@@ -119,12 +134,17 @@ async function listHistory(req, res) {
     const categoryCounts = {
       all: parseInt(counts.all_count || 0, 10),
       registrations: parseInt(counts.registrations_count || 0, 10),
+      deletions: parseInt(counts.deletions_count || 0, 10),
       updates: parseInt(counts.updates_count || 0, 10),
-      attendance: parseInt(counts.attendance_count || 0, 10),
-      whatsapp: parseInt(counts.whatsapp_count || 0, 10),
-      printing: parseInt(counts.printing_count || 0, 10),
       transfers_requests: parseInt(counts.transfers_requests_count || 0, 10),
-      staff: parseInt(counts.staff_count || 0, 10)
+      attendance: parseInt(counts.attendance_count || 0, 10),
+      printing: parseInt(counts.printing_count || 0, 10),
+      whatsapp: parseInt(counts.whatsapp_count || 0, 10),
+      finance: parseInt(counts.finance_count || 0, 10),
+      committee_staff: parseInt(counts.committee_staff_count || 0, 10),
+      settings_panchangam: parseInt(counts.settings_panchangam_count || 0, 10),
+      bugs: parseInt(counts.bugs_count || 0, 10),
+      security_logins: parseInt(counts.security_logins_count || 0, 10)
     };
 
     // Apply specific category filter if selected

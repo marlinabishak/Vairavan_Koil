@@ -350,7 +350,7 @@ export default function SubpageLayout({ children, activePage = '' }) {
       </header>
 
       {/* Main Subpage Content */}
-      <main className="flex-1 w-full max-w-[1280px] mx-auto px-3 sm:px-6 md:px-8 py-5 sm:py-7 relative z-10">
+      <main className="flex-1 w-full max-w-[1280px] mx-auto px-3 sm:px-6 md:px-8 py-5 sm:py-7">
         {children}
       </main>
 

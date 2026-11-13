@@ -219,6 +219,7 @@ export const api = {
   whatsappHistory: () => request('/whatsapp/history'),
   whatsappPreview: (fromDate, toDate) => request(`/whatsapp/preview?fromDate=${fromDate}&toDate=${toDate}`),
   whatsappSendBatch: (data) => request('/whatsapp/send-batch', { method: 'POST', body: JSON.stringify(data) }),
+  whatsappTriggerAutomation: () => request('/whatsapp/trigger-automation', { method: 'POST' }),
 
   // History
   getHistory: (params) => {
@@ -319,4 +320,22 @@ export const api = {
   },
   getBugReports: (status) => request(`/bug-reports${status && status !== 'all' ? `?status=${encodeURIComponent(status)}` : ''}`),
   updateBugReportStatus: (id, data) => request(`/bug-reports/${id}/status`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Thuritha Kattalai (On-the-day Walk-in Archanai)
+  getThurithaKattalai: (options) => {
+    const params = new URLSearchParams();
+    if (typeof options === 'string') {
+      if (options) params.append('date', options);
+    } else if (options && typeof options === 'object') {
+      if (options.date) params.append('date', options.date);
+      if (options.fromDate) params.append('fromDate', options.fromDate);
+      if (options.toDate) params.append('toDate', options.toDate);
+    }
+    const qs = params.toString();
+    return request(`/thuritha-kattalai${qs ? `?${qs}` : ''}`);
+  },
+  createThurithaKattalai: (data) => request('/thuritha-kattalai', { method: 'POST', body: JSON.stringify(data) }),
+  toggleThurithaPresent: (id) => request(`/thuritha-kattalai/${id}/present`, { method: 'PATCH' }),
+  updateThurithaKattalai: (id, data) => request(`/thuritha-kattalai/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteThurithaKattalai: (id) => request(`/thuritha-kattalai/${id}`, { method: 'DELETE' }),
 };

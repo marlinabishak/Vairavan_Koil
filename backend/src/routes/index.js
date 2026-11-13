@@ -16,6 +16,7 @@ const settingsController = require('../controllers/settingsController');
 const powerUsersController = require('../controllers/powerUsersController');
 const kattalaiDeletionController = require('../controllers/kattalaiDeletionController');
 const bugReportsController = require('../controllers/bugReportsController');
+const thurithaKattalaiController = require('../controllers/thurithaKattalaiController');
 const whatsappRoutes = require('./whatsappRoutes');
 const authenticateToken = require('../middleware/authMiddleware');
 
@@ -120,6 +121,13 @@ router.post('/history/print-log', optionalAuth, history.logPrintRecord);
 // Bug & Issue Reporting (Available to all roles)
 router.post('/bug-reports', optionalAuth, bugReportsController.upload.array('screenshots', 5), bugReportsController.createBugReport);
 router.get('/bug-reports', optionalAuth, bugReportsController.listBugReports);
+
+// Thuritha Kattalai (Walk-in / On-the-day Archanai with Attendance & Minimal Fields)
+router.get('/thuritha-kattalai', optionalAuth, thurithaKattalaiController.listThurithaKattalai);
+router.post('/thuritha-kattalai', optionalAuth, thurithaKattalaiController.createThurithaKattalai);
+router.patch('/thuritha-kattalai/:id/present', optionalAuth, thurithaKattalaiController.togglePresent);
+router.patch('/thuritha-kattalai/:id', optionalAuth, thurithaKattalaiController.updateThurithaKattalai);
+router.delete('/thuritha-kattalai/:id', optionalAuth, thurithaKattalaiController.deleteThurithaKattalai);
 
 // PROTECTED ROUTES (Require JWT)
 router.use(authenticateToken);

@@ -330,8 +330,8 @@ async function runProSeniorQA() {
     });
 
     assert(transferRes.status === 200, 'Account transfer executes with HTTP 200 OK');
-    // Difference calculation: Base 3500 - Old Paid 1200 = 2300
-    assert(transferRes.data.differenceAmount === 2300, 'Difference collected is EXACTLY ₹2,300 (3500 - 1200)', `Calculated: ₹${transferRes.data.differenceAmount}`);
+    // Difference calculation: (Base 3500 - Old Paid 1200) + Extra Fee 200 = 2500
+    assert(transferRes.data.differenceAmount === 2500, 'Difference collected is EXACTLY ₹2,500 ((3500 - 1200) + 200)', `Calculated: ₹${transferRes.data.differenceAmount}`);
     assert(transferRes.data.booking.is_transferred === 1 || transferRes.data.booking.is_transferred === true, 'Booking is_transferred flag set to true');
     assert(transferRes.data.booking.kat_type === 'Inheritance', 'Sponsorship type permanently changed to "Inheritance"');
     assert(transferRes.data.booking.transferred_from_name === 'Vaidyanathan Grandfather', 'Audit trail records original devotee name');

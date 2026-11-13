@@ -6,6 +6,7 @@ import ToDoList from '../components/ToDoList.jsx';
 import BookingModal from '../components/BookingModal.jsx';
 import PrintModal from '../components/PrintModal.jsx';
 import PanchangamStrip from '../components/PanchangamStrip.jsx';
+import ThurithaKattalaiModal from '../components/ThurithaKattalaiModal.jsx';
 import { useAuth } from '../context/AuthContext';
 
 function todayISO() {
@@ -76,9 +77,11 @@ export default function Dashboard() {
 
   const [kattalaiTypes, setKattalaiTypes] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [thurithaBookings, setThurithaBookings] = useState([]);
   const [todos, setTodos] = useState([]);
   const [panchangam, setPanchangam] = useState(null);
   const [modalType, setModalType] = useState(null);
+  const [thurithaModal, setThurithaModal] = useState(null);
   const [editBooking, setEditBooking] = useState(null);
   const [printList, setPrintList] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -158,17 +161,19 @@ export default function Dashboard() {
     try {
       setLoading(true);
       // Fetch data in parallel
-      const [fetchedTypes, fetchedBookings, fetchedPanchangam, fetchedTodos] = await Promise.all([
+      const [fetchedTypes, fetchedBookings, fetchedPanchangam, fetchedTodos, fetchedThuritha] = await Promise.all([
         api.getKattalaiTypes().catch(() => []),
         api.getBookings(date).catch(() => []),
         api.getPanchangam(date).catch(() => null),
-        api.getTodos().catch(() => [])
+        api.getTodos().catch(() => []),
+        api.getThurithaKattalai(date).catch(() => ({ data: [] }))
       ]);
       
       setKattalaiTypes(fetchedTypes);
       setBookings(fetchedBookings);
       setPanchangam(fetchedPanchangam);
       setTodos(fetchedTodos);
+      setThurithaBookings(fetchedThuritha?.data || []);
     } catch (err) {
       console.error(err);
       setError('Failed to load dashboard data');
@@ -254,6 +259,20 @@ export default function Dashboard() {
       return;
     }
 
+    // Handle Thuritha Kattalai attendance
+    const isThuritha = thurithaBookings.some((tb) => tb.id === id);
+    if (isThuritha) {
+      try {
+        setThurithaBookings((prev) => prev.map((tb) => (tb.id === id ? { ...tb, is_present: present ? 1 : 0 } : tb)));
+        await api.toggleThurithaPresent(id);
+      } catch (err) {
+        console.error(err);
+        setThurithaBookings((prev) => prev.map((tb) => (tb.id === id ? { ...tb, is_present: present ? 0 : 1 } : tb)));
+        alert("Failed to save attendance: " + err.message);
+      }
+      return;
+    }
+
     // Check +/- 5 days time restriction
     const booking = bookings.find(b => b.id === id);
     if (booking) {
@@ -286,6 +305,10 @@ export default function Dashboard() {
   }
 
   function handleEdit(booking) {
+    if (booking.is_thuritha) {
+      setThurithaModal({ slot: booking.slot, record: booking.raw || booking });
+      return;
+    }
     if (!user || (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'user')) {
       alert("Only admin/superadmin can edit Nithiya Kattalai details.");
       return;
@@ -298,8 +321,25 @@ export default function Dashboard() {
     setEditBooking(booking);
   }
 
-  function bookingsFor(kattalaiTypeId) {
-    let filtered = bookings.filter((b) => b.kattalai_type_id === kattalaiTypeId);
+  function bookingsFor(kt) {
+    if (kt.color_key === 'archanai') {
+      return thurithaBookings.map((tb) => ({
+        id: tb.id,
+        name: tb.name,
+        place: tb.place,
+        star: tb.star,
+        phone: tb.phone,
+        email: tb.email,
+        amount: tb.amount,
+        code: `TK/${tb.slot}`,
+        color_key: 'archanai',
+        present: Boolean(tb.is_present),
+        is_thuritha: true,
+        slot: tb.slot,
+        raw: tb
+      }));
+    }
+    let filtered = bookings.filter((b) => b.kattalai_type_id === kt.id);
     if (isDevotee && user) {
       filtered = filtered.filter((b) => b.id === user.id);
     }
@@ -321,7 +361,7 @@ export default function Dashboard() {
   
   if (kattalaiTypes.length > 0) {
     kattalaiTypes.forEach((kt) => {
-      const bks = bookingsFor(kt.id);
+      const bks = bookingsFor(kt);
       // For devotees, hide columns where they have no bookings
       if (isDevotee && bks.length === 0) return;
       
@@ -332,7 +372,13 @@ export default function Dashboard() {
             bookings={bks}
             onTogglePresent={handleTogglePresent}
             onEdit={handleEdit}
-            onAddNew={(type, slot) => setModalType({ kattalaiType: type, initialSlot: slot })}
+            onAddNew={(type, slot) => {
+              if (type.color_key === 'archanai') {
+                setThurithaModal({ slot, record: null });
+              } else {
+                setModalType({ kattalaiType: type, initialSlot: slot });
+              }
+            }}
             highlightedBookingId={highlightedBookingId}
           />
         </div>
@@ -488,6 +534,21 @@ export default function Dashboard() {
       )}
       {printList && user && (user.role === 'admin' || user.role === 'superadmin') && (
         <PrintModal list={printList} date={date} onClose={() => setPrintList(null)} />
+      )}
+
+      {/* Thuritha Kattalai Modal */}
+      {thurithaModal && (
+        <ThurithaKattalaiModal
+          isOpen={Boolean(thurithaModal)}
+          slot={thurithaModal.slot}
+          date={date}
+          existingRecord={thurithaModal.record}
+          onClose={() => setThurithaModal(null)}
+          onSaved={() => {
+            setThurithaModal(null);
+            loadAll();
+          }}
+        />
       )}
     </div>
   );
