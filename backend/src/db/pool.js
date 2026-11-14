@@ -28,7 +28,8 @@ const pool = mysql.createPool({
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000,
-  connectTimeout: 20000
+  connectTimeout: 20000,
+  timezone: '+00:00'
 });
 
 // Enforce READ COMMITTED across all connections to prevent stale MVCC snapshot lag

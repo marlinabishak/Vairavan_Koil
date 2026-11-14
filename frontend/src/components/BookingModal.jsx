@@ -161,6 +161,8 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [editRequestStatus, setEditRequestStatus] = useState(null); // 'pending', 'approved', 'rejected'
+  const [transferRequestStatus, setTransferRequestStatus] = useState(null); // 'pending', 'approved', 'rejected'
+  const [pendingTransferInfo, setPendingTransferInfo] = useState(null);
   const [dropdowns, setDropdowns] = useState({ title: [], star: [], place: [], kat_type: ['Lifetime', 'Inheritance'] });
   const [showTamilModal, setShowTamilModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -190,8 +192,10 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
   const [transferring, setTransferring] = useState(false);
   const [transferError, setTransferError] = useState(null);
   const [isTransferTamil, setIsTransferTamil] = useState(false);
+  const [showTransferPaymentModal, setShowTransferPaymentModal] = useState(false);
+  const [pendingTransferTamilData, setPendingTransferTamilData] = useState(null);
   const [transferForm, setTransferForm] = useState({
-    title: 'Selvan',
+    title: '',
     title_ta: '',
     name: '',
     name_ta: '',
@@ -311,12 +315,22 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
   }, [existingBooking]);
 
   useEffect(() => {
-    if (existingBooking && user?.role === 'user') {
-      api.getEditRequestForBooking(existingBooking.id)
-        .then(req => {
-          if (req) setEditRequestStatus(req.status);
+    if (existingBooking) {
+      if (user?.role === 'user') {
+        api.getEditRequestForBooking(existingBooking.id)
+          .then(req => {
+            if (req) setEditRequestStatus(req.status);
+          })
+          .catch(err => console.error("Failed to load edit request status", err));
+      }
+      api.getTransferRequestForBooking(existingBooking.id)
+        .then(tr => {
+          if (tr) {
+            setTransferRequestStatus(tr.status);
+            setPendingTransferInfo(tr);
+          }
         })
-        .catch(err => console.error("Failed to load edit request status", err));
+        .catch(err => console.error("Failed to load transfer request status", err));
     }
   }, [existingBooking, user]);
 
@@ -330,24 +344,88 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
 
   const isAlreadyTransferred = Boolean(existingBooking?.is_transferred || existingBooking?.transferred_at);
   const oldPaidAmount = parseFloat(existingBooking?.amount || 0);
-  const transferDifferenceAmount = Math.max(0, transferBaseRate - oldPaidAmount) + transferExtraFee;
+  const transferDifferenceAmount = 0;
 
   function handleStartTransferTamil(e) {
     if (e) e.preventDefault();
-    if (!transferForm.name?.trim()) {
-      setTransferError('Please enter the name of the son or daughter');
+    if (!transferForm.title?.trim()) {
+      const msg = 'Please select Title for the child.';
+      setTransferError(msg);
+      alert(msg);
       return;
+    }
+    if (!transferForm.name?.trim()) {
+      const msg = 'Please enter Full Name of the son or daughter.';
+      setTransferError(msg);
+      alert(msg);
+      return;
+    }
+    if (!transferForm.star?.trim()) {
+      const msg = 'Please select Star (நட்சத்திரம்) for the child.';
+      setTransferError(msg);
+      alert(msg);
+      return;
+    }
+    if (!transferForm.place?.trim()) {
+      const msg = 'Please select Place (ஊர்) for the child.';
+      setTransferError(msg);
+      alert(msg);
+      return;
+    }
+    if (!transferForm.address?.trim()) {
+      const msg = 'Please enter Address for the child.';
+      setTransferError(msg);
+      alert(msg);
+      return;
+    }
+    const transferMobile = (transferForm.mobile || '').replace(/\D/g, '');
+    if (!transferMobile) {
+      const msg = 'Please enter Mobile Number for the son or daughter.';
+      setTransferError(msg);
+      alert(msg);
+      return;
+    }
+    if (transferMobile.length !== 10) {
+      const msg = `Invalid Mobile Number: India (+91) Mobile Number must be exactly 10 digits (currently ${transferMobile.length} digits).`;
+      setTransferError(msg);
+      alert(msg);
+      return;
+    }
+    if (transferForm.whatsapp_number && transferForm.whatsapp_number.trim()) {
+      const waDigits = transferForm.whatsapp_number.replace(/\D/g, '');
+      const cc = String(transferForm.country_code || '91').replace(/\D/g, '');
+      if (cc === '91' && waDigits.length !== 10) {
+        const msg = `Invalid WhatsApp Number: India (+91) WhatsApp Number must be exactly 10 digits (currently ${waDigits.length} digits).`;
+        setTransferError(msg);
+        alert(msg);
+        return;
+      } else if (cc !== '91' && (waDigits.length < 6 || waDigits.length > 15)) {
+        const msg = `Invalid WhatsApp Number: Foreign WhatsApp Number must be between 6 and 15 digits (currently ${waDigits.length} digits).`;
+        setTransferError(msg);
+        alert(msg);
+        return;
+      }
+    }
+    if (transferForm.email && transferForm.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(transferForm.email.trim())) {
+        const msg = "Please enter a valid Email Address for the son or daughter.";
+        setTransferError(msg);
+        alert(msg);
+        return;
+      }
     }
     setTransferError(null);
     setIsTransferTamil(true);
     setShowTamilModal(true);
   }
 
-  async function handleConfirmTransfer(tamilData = {}) {
+  async function handleConfirmTransfer(tamilData = {}, paymentResult = null) {
     setTransferring(true);
     setTransferError(null);
     try {
       const payload = {
+        booking_id: existingBooking.id,
         title: transferForm.title,
         title_ta: tamilData.title_ta || transferForm.title_ta || '',
         name: transferForm.name.trim(),
@@ -360,31 +438,108 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
         mobile: transferForm.mobile,
         whatsapp_number: transferForm.whatsapp_number || transferForm.mobile,
         email: transferForm.email,
-        per_add_1: transferForm.address,
-        comm_add_1: transferForm.address,
-        payment_method: transferForm.payment_method,
+        address: transferForm.address,
+        payment_method: paymentResult?.method || transferForm.payment_method || 'upi',
+        payment_status: paymentResult ? 'paid' : (user?.role === 'user' ? 'paid' : 'cash'),
+        payment_id: paymentResult?.paymentId || (paymentResult?.txnRef) || null,
+        fee_amount: paymentResult?.amount || transferExtraFee || 200,
+        comments: tamilData.comments || `1-Time Account Transfer from ${existingBooking?.title || ''} ${existingBooking?.name || ''}`,
         user_id: user?.id,
-        user_name: user?.name
+        user_name: user?.name,
+        execute_now: user?.role === 'admin' || user?.role === 'superadmin'
       };
 
-      const res = await api.transferBooking(existingBooking.id, payload);
+      const res = await api.createTransferRequest(payload);
       setTransferring(false);
       setShowTransferModal(false);
       setShowTamilModal(false);
       setIsTransferTamil(false);
-      if (onSaved) onSaved(res.booking);
-      onClose();
+      setShowTransferPaymentModal(false);
+
+      if (user?.role === 'user') {
+        setTransferRequestStatus('pending');
+        setPendingTransferInfo(res.request || payload);
+        alert(`Payment of ₹${payload.fee_amount || 200} successful! Account transfer request submitted and is awaiting Temple Admin approval.`);
+      } else {
+        if (onSaved && res.booking) onSaved(res.booking);
+        alert(res.message || 'Account transfer executed and approved successfully.');
+        onClose();
+      }
     } catch (err) {
       setTransferError(err.message || 'Failed to complete transfer');
       setTransferring(false);
       setShowTamilModal(false);
+      setShowTransferPaymentModal(false);
     }
   }
 
   const isUnlocked = editRequestStatus === 'approved';
   const isLockedForUser = user?.role === 'user' && !isUnlocked;
 
+  const sanitizeMobile = (val, isIndian = true) => {
+    if (!val) return '';
+    let digits = String(val).replace(/\D/g, '');
+    if (isIndian) {
+      if (digits.length === 12 && digits.startsWith('91')) {
+        digits = digits.slice(2);
+      } else if (digits.length === 11 && digits.startsWith('0')) {
+        digits = digits.slice(1);
+      }
+      return digits.slice(0, 10);
+    }
+    return digits.slice(0, 15);
+  };
+
+  const handleMobileChange = (e) => {
+    if (error) setError(null);
+    const digits = sanitizeMobile(e.target.value, true);
+    setForm(f => ({ ...f, mobile: digits }));
+  };
+
+  const handleWhatsAppChange = (e) => {
+    if (error) setError(null);
+    const isIndia = String(form.country_code || '91').replace(/\D/g, '') === '91';
+    const digits = sanitizeMobile(e.target.value, isIndia);
+    setForm(f => ({ ...f, whatsapp_number: digits }));
+  };
+
+  const handleCountryCodeChange = (e) => {
+    if (error) setError(null);
+    const newCode = e.target.value.replace(/\D/g, '');
+    const isIndia = newCode === '91';
+    setForm(f => ({
+      ...f,
+      country_code: newCode,
+      whatsapp_number: sanitizeMobile(f.whatsapp_number || '', isIndia)
+    }));
+  };
+
+  const handleTransferMobileChange = (e) => {
+    if (transferError) setTransferError(null);
+    const digits = sanitizeMobile(e.target.value, true);
+    setTransferForm(prev => ({ ...prev, mobile: digits }));
+  };
+
+  const handleTransferWhatsAppChange = (e) => {
+    if (transferError) setTransferError(null);
+    const isIndia = String(transferForm.country_code || '91').replace(/\D/g, '') === '91';
+    const digits = sanitizeMobile(e.target.value, isIndia);
+    setTransferForm(prev => ({ ...prev, whatsapp_number: digits }));
+  };
+
+  const handleTransferCountryCodeChange = (e) => {
+    if (transferError) setTransferError(null);
+    const newCode = e.target.value.replace(/\D/g, '');
+    const isIndia = newCode === '91';
+    setTransferForm(prev => ({
+      ...prev,
+      country_code: newCode,
+      whatsapp_number: sanitizeMobile(prev.whatsapp_number || '', isIndia)
+    }));
+  };
+
   const set = (field) => (e) => {
+    if (error) setError(null);
     const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setForm((f) => {
       const next = { ...f, [field]: val };
@@ -400,7 +555,10 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
   };
 
   const isFormValid = existingBooking
-    ? Boolean(form.name?.trim())
+    ? Boolean(
+        form.name?.trim() &&
+        (!form.mobile?.trim() || form.mobile.replace(/\D/g, '').length === 10)
+      )
     : Boolean(
         form.title?.trim() &&
         form.name?.trim() &&
@@ -408,43 +566,101 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
         form.place?.trim() &&
         (form.kat_type?.trim() || 'Lifetime') &&
         form.mobile?.trim() &&
+        form.mobile.replace(/\D/g, '').length === 10 &&
         form.permanent_address?.trim() &&
         form.booking_date &&
         form.code
       );
 
   async function handlePayNow() {
+    if (!form.title?.trim()) {
+      const msg = "Please select Title.";
+      setError(msg);
+      alert(msg);
+      return;
+    }
     if (!form.name?.trim()) {
-      setError("Please enter Full Name.");
+      const msg = "Please enter Full Name.";
+      setError(msg);
+      alert(msg);
+      return;
+    }
+    if (!form.star?.trim()) {
+      const msg = "Please select Star (நட்சத்திரம்).";
+      setError(msg);
+      alert(msg);
+      return;
+    }
+    if (!form.place?.trim()) {
+      const msg = "Please select Place (ஊர்).";
+      setError(msg);
+      alert(msg);
       return;
     }
     if (!existingBooking) {
-      if (!form.title?.trim()) {
-        setError("Please select Title.");
+      const mobileDigits = (form.mobile || '').replace(/\D/g, '');
+      if (!mobileDigits) {
+        const msg = "Please enter Mobile Number.";
+        setError(msg);
+        alert(msg);
         return;
       }
-      if (!form.star?.trim()) {
-        setError("Please select Star.");
-        return;
-      }
-      if (!form.place?.trim()) {
-        setError("Please select Place.");
-        return;
-      }
-      if (!form.mobile?.trim()) {
-        setError("Please enter Mobile Number.");
+      if (mobileDigits.length !== 10) {
+        const msg = `Invalid Mobile Number: India (+91) Mobile Number must be exactly 10 digits (currently ${mobileDigits.length} digits).`;
+        setError(msg);
+        alert(msg);
         return;
       }
       if (!form.permanent_address?.trim()) {
-        setError("Please enter Permanent Address.");
+        const msg = "Please enter Permanent Address.";
+        setError(msg);
+        alert(msg);
         return;
       }
       if (!form.booking_date) {
-        setError("Please select Booking Date.");
+        const msg = "Please select Booking Date.";
+        setError(msg);
+        alert(msg);
         return;
       }
       if (!form.code) {
-        setError("Please select an available slot.");
+        const msg = "Please select an available slot.";
+        setError(msg);
+        alert(msg);
+        return;
+      }
+    } else {
+      if (form.mobile && form.mobile.trim()) {
+        const mobileDigits = form.mobile.replace(/\D/g, '');
+        if (mobileDigits.length !== 10) {
+          const msg = `Invalid Mobile Number: India (+91) Mobile Number must be exactly 10 digits (currently ${mobileDigits.length} digits).`;
+          setError(msg);
+          alert(msg);
+          return;
+        }
+      }
+    }
+    if (form.whatsapp_number && form.whatsapp_number.trim()) {
+      const waDigits = form.whatsapp_number.replace(/\D/g, '');
+      const cc = String(form.country_code || '91').replace(/\D/g, '');
+      if (cc === '91' && waDigits.length !== 10) {
+        const msg = `Invalid WhatsApp Number: India (+91) WhatsApp Number must be exactly 10 digits (currently ${waDigits.length} digits).`;
+        setError(msg);
+        alert(msg);
+        return;
+      } else if (cc !== '91' && (waDigits.length < 6 || waDigits.length > 15)) {
+        const msg = `Invalid WhatsApp Number: Foreign WhatsApp Number must be between 6 and 15 digits (currently ${waDigits.length} digits).`;
+        setError(msg);
+        alert(msg);
+        return;
+      }
+    }
+    if (form.email && form.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(form.email.trim())) {
+        const msg = "Please enter a valid Email Address.";
+        setError(msg);
+        alert(msg);
         return;
       }
     }
@@ -627,6 +843,26 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
     const totalRender = Math.max(kType.max_slots || 4, highestBookedSlot, (isPrefixMatch && selectedSlotNum) ? selectedSlotNum : 0);
     const slots = [];
     
+    // Determine next available slot in sequential order for new registrations
+    let nextAvailableSlot = null;
+    if (!existingBooking) {
+      for (let s = 1; s <= totalRender; s++) {
+        const isB = typeBookings.some(b => {
+          if (!b.code) return false;
+          const bm = b.code.trim().match(/^([A-Za-z]+)\/(\d+)/);
+          if (!bm) return false;
+          const bp = bm[1].toUpperCase();
+          const bs = parseInt(bm[2], 10);
+          const bpm = bp === prefix || (prefix === 'U' && (bp === 'UK' || bp === 'U')) || (prefix === 'A' && (bp === 'AJ' || bp === 'A'));
+          return bpm && bs === s;
+        });
+        if (!isB) {
+          nextAvailableSlot = s;
+          break;
+        }
+      }
+    }
+
     for (let slotNum = 1; slotNum <= totalRender; slotNum++) {
       const isSelected = isPrefixMatch && selectedSlotNum === slotNum;
       
@@ -641,10 +877,13 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
         return bpm && bs === slotNum;
       });
 
+      const isLocked = !existingBooking && !isBookedByOther && !isSelected && slotNum !== nextAvailableSlot;
+
       // Style logic:
       // 1. isSelected -> DARK SHADE (Prominently highlighted, solid color, 100% opacity)
       // 2. isBookedByOther -> LIGHT SHADE (Muted background, 0.30 opacity)
-      // 3. Available -> OUTLINE ONLY (transparent background, 100% border)
+      // 3. isLocked -> DASHED OUTLINE (Muted, 0.35 opacity)
+      // 4. Available -> OUTLINE ONLY (transparent background, 100% border)
       let slotBg = 'transparent';
       let slotBorder = `1.8px solid ${color}`;
       let slotOpacity = 1;
@@ -664,6 +903,11 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
         slotBorder = `1.8px solid ${color}`;
         slotOpacity = 0.30;
         slotTitle = `Slot ${slotNum} (Booked)`;
+      } else if (isLocked) {
+        slotBg = 'transparent';
+        slotBorder = '1.5px dashed #cbd5e1';
+        slotOpacity = 0.35;
+        slotTitle = `Slot ${slotNum} (Locked: Must register Slot ${nextAvailableSlot} first)`;
       }
 
       slots.push(
@@ -671,7 +915,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
           key={slotNum}
           type="button"
           onClick={() => {
-            if (!isBookedByOther && !isSelected && !existingBooking) {
+            if (!isBookedByOther && !isSelected && !existingBooking && !isLocked) {
               const dayOfYear = getDayOfYear(form.booking_date);
               setForm(f => ({
                 ...f,
@@ -681,7 +925,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
               }));
             }
           }}
-          disabled={isBookedByOther || isSelected || !!existingBooking}
+          disabled={isBookedByOther || isSelected || !!existingBooking || isLocked}
           className="transition-all"
           style={{
             width: '13px',
@@ -690,7 +934,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
             backgroundColor: slotBg,
             border: slotBorder,
             opacity: slotOpacity,
-            cursor: (isBookedByOther || !!existingBooking) ? 'default' : 'pointer',
+            cursor: (isBookedByOther || !!existingBooking || isLocked) ? 'default' : 'pointer',
             boxShadow: slotShadow,
             transform: slotTransform
           }}
@@ -755,6 +999,21 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                     {existingBooking.transferred_from_name ? ` (from ${existingBooking.transferred_from_title || ''} ${existingBooking.transferred_from_name})` : ''}.
                     1-time limit reached.
                   </span>
+                </div>
+              </div>
+            )}
+
+            {/* Pending Transfer Request Notice */}
+            {transferRequestStatus === 'pending' && (
+              <div className="bg-[#fffbeb] border border-[#fef3c7] rounded-xl px-3 py-2 flex items-center justify-between text-xs text-[#92400e] animate-fade-in mb-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+                  <div className="flex-1">
+                    <span className="font-bold">Account Transfer Request Pending:</span>
+                    <span className="text-[11.5px] text-[#78350f] ml-1">
+                      Transfer to {pendingTransferInfo?.title || 'Selvan'} {pendingTransferInfo?.name} is submitted and awaiting Temple Admin approval.
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
@@ -891,7 +1150,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                   <select 
                     className="h-[38px] pl-1.5 pr-3 rounded-l-full border border-r-0 border-[#e2d8cb] bg-[#faf8f5] font-barlow text-[12.5px] font-bold text-[#5c292c] focus:outline-none focus:border-[#5c292c] w-full shadow-sm appearance-none cursor-pointer hover:bg-[#f3ede3] transition-colors text-center"
                     value={String(form.country_code || '91').replace(/\D/g, '')}
-                    onChange={(e) => setForm(f => ({ ...f, country_code: e.target.value }))}
+                    onChange={handleCountryCodeChange}
                     title="Country Code for WhatsApp"
                   >
                     {COUNTRY_CODES.map(c => (
@@ -911,11 +1170,14 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 </div>
                 <div className="relative flex-1 min-w-0">
                   <input 
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={String(form.country_code || '91').replace(/\D/g, '') === '91' ? 10 : 15}
                     className="h-[38px] rounded-r-full border border-[#e2d8cb] bg-white font-barlow text-[13.5px] text-gray-800 placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] w-full shadow-sm px-2.5"
                     placeholder="WhatsApp"
                     title="WhatsApp Number"
                     value={form.whatsapp_number || ''}
-                    onChange={set('whatsapp_number')}
+                    onChange={handleWhatsAppChange}
                   />
                 </div>
               </div>
@@ -927,12 +1189,22 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 </div>
                 <div className="relative flex-1 min-w-0">
                   <input 
-                    className={`h-[38px] rounded-r-full border border-[#e2d8cb] bg-white font-barlow text-gray-800 placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] w-full shadow-sm ${isLockedForUser ? 'pl-2.5 pr-7 text-[13px] tracking-tight' : 'px-3 text-[13.5px]'}`}
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    className={`h-[38px] rounded-r-full border border-[#e2d8cb] bg-white font-barlow text-gray-800 placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] w-full shadow-sm ${isLockedForUser ? 'pl-2.5 pr-7 text-[13px] tracking-tight' : 'pl-3 pr-12 text-[13.5px]'}`}
                     placeholder="Mobile"
                     value={form.mobile || ''}
-                    onChange={set('mobile')}
+                    onChange={handleMobileChange}
                     disabled={isLockedForUser}
                   />
+                  {!isLockedForUser && form.mobile && (
+                    <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold ${
+                      form.mobile.length === 10 ? 'text-emerald-600' : 'text-amber-600'
+                    }`}>
+                      {form.mobile.length === 10 ? '✓ 10' : `${form.mobile.length}/10`}
+                    </span>
+                  )}
                   <LockIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#f37435]" />
                 </div>
               </div>
@@ -1078,10 +1350,35 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                   {deleteInitiating ? 'Sending OTPs...' : 'Delete Nithiya Kattalai'}
                 </button>
               )}
-              {isEligibleForTransfer && (
+              {transferRequestStatus === 'pending' && (
+                <span className="flex items-center gap-1.5 font-barlow text-[13px] text-amber-800 bg-amber-50 border border-amber-200 px-4 h-[38px] rounded-full">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                  Transfer Request Pending Admin Approval
+                </span>
+              )}
+              {isEligibleForTransfer && transferRequestStatus !== 'pending' && (
                 <button
                   type="button"
-                  onClick={() => setShowTransferModal(true)}
+                  onClick={() => {
+                    setTransferForm({
+                      title: '',
+                      title_ta: '',
+                      name: '',
+                      name_ta: '',
+                      star: '',
+                      star_ta: '',
+                      place: '',
+                      place_ta: '',
+                      country_code: existingBooking?.country_code || '91',
+                      mobile: '',
+                      whatsapp_number: '',
+                      email: '',
+                      address: '',
+                      payment_method: 'cash'
+                    });
+                    setTransferError(null);
+                    setShowTransferModal(true);
+                  }}
                   className="flex items-center justify-center gap-1.5 font-barlow font-semibold text-[14px] bg-[#fdf2e9] text-[#c2410c] border border-[#fed7aa] hover:bg-[#ffedd5] transition-all px-5 h-[38px] rounded-full shadow-sm cursor-pointer active:scale-[0.99]"
                   title="1-time transfer of this account to son or daughter"
                 >
@@ -1109,7 +1406,11 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
             <div className="flex items-center justify-between px-1 pb-1 border-b border-[#ebdccb]/60 mb-0.5">
               <h3 className="text-[17px] sm:text-[18px] font-bold text-[#5c292c] tracking-wide flex items-center gap-2">
                 <span>1-Time Account Transfer</span>
-                <span className="text-[10px] font-bold bg-[#c2410c] text-white px-2 py-0.5 rounded-full uppercase tracking-wider">Son / Daughter</span>
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs transition-all duration-300 ${
+                  transferForm.title ? 'bg-[#15803d] text-white' : 'bg-[#c2410c] text-white'
+                }`}>
+                  {transferForm.title ? transferForm.title.toUpperCase() : 'SON / DAUGHTER'}
+                </span>
               </h3>
               <button
                 onClick={() => setShowTransferModal(false)}
@@ -1130,9 +1431,10 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 <div className="relative w-[110px] shrink-0">
                   <select
                     className={selectClass}
-                    value={transferForm.title}
+                    value={transferForm.title || ''}
                     onChange={(e) => setTransferForm(prev => ({ ...prev, title: e.target.value }))}
                   >
+                    <option value="" disabled>Title</option>
                     <option value="Selvan">Selvan</option>
                     <option value="Thiru">Thiru</option>
                     <option value="Selvi">Selvi</option>
@@ -1211,7 +1513,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                     <select
                       className="h-[38px] pl-1.5 pr-3 rounded-l-full border border-r-0 border-[#e2d8cb] bg-[#faf8f5] font-barlow text-[12.5px] font-bold text-[#5c292c] focus:outline-none focus:border-[#5c292c] w-full shadow-sm appearance-none cursor-pointer hover:bg-[#f3ede3] transition-colors text-center"
                       value={String(transferForm.country_code || '91').replace(/\D/g, '')}
-                      onChange={(e) => setTransferForm(prev => ({ ...prev, country_code: e.target.value }))}
+                      onChange={handleTransferCountryCodeChange}
                       title="Country Code"
                     >
                       {COUNTRY_CODES.map(c => (
@@ -1226,11 +1528,14 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                   </div>
                   <div className="relative flex-1 min-w-0">
                     <input
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={String(transferForm.country_code || '91').replace(/\D/g, '') === '91' ? 10 : 15}
                       className="h-[38px] rounded-r-full border border-[#e2d8cb] bg-white font-barlow text-[13.5px] text-gray-800 placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] w-full shadow-sm px-2.5"
                       placeholder="WhatsApp"
                       title="WhatsApp Number"
                       value={transferForm.whatsapp_number}
-                      onChange={(e) => setTransferForm(prev => ({ ...prev, whatsapp_number: e.target.value }))}
+                      onChange={handleTransferWhatsAppChange}
                     />
                   </div>
                 </div>
@@ -1241,18 +1546,30 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                   </div>
                   <div className="relative flex-1 min-w-0">
                     <input
-                      className="h-[38px] rounded-r-full border border-[#e2d8cb] bg-white font-barlow text-[13.5px] text-gray-800 placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] w-full shadow-sm px-3"
-                      placeholder="Mobile"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      className="h-[38px] rounded-r-full border border-[#e2d8cb] bg-white font-barlow text-[13.5px] text-gray-800 placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] w-full shadow-sm pl-3 pr-12"
+                      placeholder="10-digit Mobile"
                       value={transferForm.mobile}
-                      onChange={(e) => setTransferForm(prev => ({ ...prev, mobile: e.target.value }))}
+                      onChange={handleTransferMobileChange}
                     />
+                    {transferForm.mobile && (
+                      <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold ${
+                        transferForm.mobile.length === 10 ? 'text-emerald-600' : 'text-amber-600'
+                      }`}>
+                        {transferForm.mobile.length === 10 ? '✓ 10' : `${transferForm.mobile.length}/10`}
+                      </span>
+                    )}
                   </div>
                 </div>
+
                 <div className="relative">
                   <select
-                    value={transferForm.payment_method}
+                    value={transferForm.payment_method || 'cash'}
                     onChange={(e) => setTransferForm(prev => ({ ...prev, payment_method: e.target.value }))}
                     className={selectClass}
+                    title="Payment Mode Used"
                   >
                     <option value="cash">Cash Payment</option>
                     <option value="upi">GPay / UPI</option>
@@ -1288,7 +1605,7 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 onClick={handleStartTransferTamil}
                 className="flex items-center justify-center font-barlow font-semibold text-[15px] transition-all px-8 h-[38px] rounded-full shadow-sm bg-[#c2410c] hover:bg-[#9a3412] text-white hover:shadow cursor-pointer active:scale-[0.99] disabled:opacity-50"
               >
-                {transferring ? 'Transferring...' : 'Pay'}
+                {transferring ? 'Transferring...' : 'Next'}
               </button>
             </div>
           </div>
@@ -1306,7 +1623,13 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
           }}
           onSubmit={(tamilData) => {
             if (isTransferTamil) {
-              handleConfirmTransfer(tamilData);
+              if (user?.role === 'user') {
+                setPendingTransferTamilData(tamilData);
+                setShowTamilModal(false);
+                setShowTransferPaymentModal(true);
+              } else {
+                handleConfirmTransfer(tamilData);
+              }
             } else {
               setShowTamilModal(false);
               handleFinalPayNow(tamilData);
@@ -1318,11 +1641,9 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
             name: transferForm.name,
             star: transferForm.star,
             place: transferForm.place,
-            amount: transferDifferenceAmount,
+            amount: transferExtraFee || 200,
             isTransfer: true,
-            currentRate: transferBaseRate,
-            oldPaidAmount: oldPaidAmount,
-            transferDifferenceAmount: transferDifferenceAmount,
+            isDevotee: user?.role === 'user',
             comments: `1-Time Account Transfer from ${existingBooking?.title || ''} ${existingBooking?.name || ''}`
           } : {
             ...form,
@@ -1330,6 +1651,23 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
             baseAmount: dynamicFee ? dynamicFee.baseAmount : 3500,
             archanaiCharge: dynamicFee ? dynamicFee.archanaiCharge : 0,
             isWithinSixMonths: dynamicFee ? dynamicFee.isWithinSixMonths : false,
+          }}
+        />
+      )}
+
+      {/* Online Payment Modal for Account Transfer Difference Fee */}
+      {showTransferPaymentModal && (
+        <OnlinePaymentModal
+          isOpen={showTransferPaymentModal}
+          amount={transferExtraFee || 200}
+          purpose="1-Time Account Transfer Fee"
+          devoteeName={transferForm.name}
+          officeCode={existingBooking?.code || ''}
+          bookingId={existingBooking?.id}
+          onClose={() => setShowTransferPaymentModal(false)}
+          onSuccess={(paymentResult) => {
+            setShowTransferPaymentModal(false);
+            handleConfirmTransfer(pendingTransferTamilData || {}, paymentResult);
           }}
         />
       )}

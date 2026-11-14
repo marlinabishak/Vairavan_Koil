@@ -1,4 +1,4 @@
-const pool = require('../db/pool');
+﻿const pool = require('../db/pool');
 
 // GET /api/bookings?date=2026-05-12 or ?fromDate=2026-10-01&toDate=2026-10-31 or ?month=10&year=2026
 // Returns bookings grouped-friendly (flat list; frontend groups by kattalai_type_id)
@@ -210,6 +210,49 @@ async function createBooking(req, res) {
     return res.status(400).json({ error: 'kattalai_type_id, kattalai_date, kattalai_month and name are required' });
   }
 
+  // Strict Phone and Email Validation
+  let cleanMobile = (mobile || '').replace(/\D/g, '');
+  if (cleanMobile.length === 12 && cleanMobile.startsWith('91')) {
+    cleanMobile = cleanMobile.slice(2);
+  } else if (cleanMobile.length === 11 && cleanMobile.startsWith('0')) {
+    cleanMobile = cleanMobile.slice(1);
+  }
+  if (!cleanMobile) {
+    return res.status(400).json({ error: 'Mobile number is required' });
+  }
+  if (cleanMobile.length !== 10) {
+    return res.status(400).json({
+      error: `Invalid Mobile Number: India (+91) mobile number must be exactly 10 digits (received ${cleanMobile.length} digits).`
+    });
+  }
+  mobile = cleanMobile;
+
+  if (whatsapp_number && String(whatsapp_number).trim()) {
+    let cleanWa = String(whatsapp_number).replace(/\D/g, '');
+    const cc = String(country_code || '91').replace(/\D/g, '');
+    if (cc === '91') {
+      if (cleanWa.length === 12 && cleanWa.startsWith('91')) cleanWa = cleanWa.slice(2);
+      else if (cleanWa.length === 11 && cleanWa.startsWith('0')) cleanWa = cleanWa.slice(1);
+      if (cleanWa.length !== 10) {
+        return res.status(400).json({
+          error: `Invalid WhatsApp Number: India (+91) WhatsApp number must be exactly 10 digits (received ${cleanWa.length} digits).`
+        });
+      }
+    } else if (cleanWa.length < 6 || cleanWa.length > 15) {
+      return res.status(400).json({
+        error: `Invalid WhatsApp Number: Foreign WhatsApp number must be between 6 and 15 digits (received ${cleanWa.length} digits).`
+      });
+    }
+    whatsapp_number = cleanWa;
+  }
+
+  if (email && String(email).trim()) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(String(email).trim())) {
+      return res.status(400).json({ error: 'Invalid Email Address format.' });
+    }
+  }
+
   let finalAmount = (amount !== undefined && amount !== null && amount !== '') ? parseFloat(amount) : null;
   if (finalAmount === null || isNaN(finalAmount)) {
     try {
@@ -345,6 +388,42 @@ async function updateBooking(req, res) {
     );
     if (reqRes.rows.length > 0 && reqRes.rows[0].status === 'approved') {
       isUnlocked = true;
+    }
+  }
+
+  if (req.body.mobile !== undefined && req.body.mobile !== null && String(req.body.mobile).trim() !== '') {
+    let cleanMobile = String(req.body.mobile).replace(/\D/g, '');
+    if (cleanMobile.length === 12 && cleanMobile.startsWith('91')) cleanMobile = cleanMobile.slice(2);
+    else if (cleanMobile.length === 11 && cleanMobile.startsWith('0')) cleanMobile = cleanMobile.slice(1);
+    if (cleanMobile.length !== 10) {
+      return res.status(400).json({
+        error: `Invalid Mobile Number: India (+91) mobile number must be exactly 10 digits (received ${cleanMobile.length} digits).`
+      });
+    }
+    req.body.mobile = cleanMobile;
+  }
+  if (req.body.whatsapp_number !== undefined && req.body.whatsapp_number !== null && String(req.body.whatsapp_number).trim() !== '') {
+    let cleanWa = String(req.body.whatsapp_number).replace(/\D/g, '');
+    const cc = String(req.body.country_code || '91').replace(/\D/g, '');
+    if (cc === '91') {
+      if (cleanWa.length === 12 && cleanWa.startsWith('91')) cleanWa = cleanWa.slice(2);
+      else if (cleanWa.length === 11 && cleanWa.startsWith('0')) cleanWa = cleanWa.slice(1);
+      if (cleanWa.length !== 10) {
+        return res.status(400).json({
+          error: `Invalid WhatsApp Number: India (+91) WhatsApp number must be exactly 10 digits (received ${cleanWa.length} digits).`
+        });
+      }
+    } else if (cleanWa.length < 6 || cleanWa.length > 15) {
+      return res.status(400).json({
+        error: `Invalid WhatsApp Number: Foreign WhatsApp number must be between 6 and 15 digits (received ${cleanWa.length} digits).`
+      });
+    }
+    req.body.whatsapp_number = cleanWa;
+  }
+  if (req.body.email !== undefined && req.body.email !== null && String(req.body.email).trim() !== '') {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(String(req.body.email).trim())) {
+      return res.status(400).json({ error: 'Invalid Email Address format.' });
     }
   }
 
@@ -617,7 +696,9 @@ const getMyAttendance = async (req, res) => {
 // POST /api/bookings/:id/transfer
 async function transferBooking(req, res) {
   if (req.user && req.user.role === 'user') {
-    return res.status(403).json({ error: 'Access denied. Only temple administration can execute kattalai transfers.' });
+    const transferRequestsController = require('./transferRequestsController');
+    req.body.booking_id = req.params.id;
+    return transferRequestsController.createTransferRequest(req, res);
   }
   try {
     const { id } = req.params;
@@ -696,9 +777,9 @@ async function transferBooking(req, res) {
       console.warn('Could not read transfer_extra_fee from settings, using 200:', e.message);
     }
 
-    // 5. Calculate difference amount: (Current Endowment Rate - Prior Historical Deposit) + Extra Transfer Fee
+    // 5. Account transfer has no difference fee (free hereditary transfer)
     const oldPaidAmount = parseFloat(current.amount || 0);
-    const differenceAmount = Math.max(0, baseTransferAmount - oldPaidAmount) + extraTransferFee;
+    const differenceAmount = 0;
 
     // 6. Update booking with son/daughter details (replaces father details in the exact same columns)
     const countryCodeVal = req.body.country_code ? String(req.body.country_code).replace(/\D/g, '') : (current.country_code || '91');
@@ -736,7 +817,7 @@ async function transferBooking(req, res) {
         comm_add_2 !== undefined ? comm_add_2 : current.comm_add_2,
         comm_add_3 !== undefined ? comm_add_3 : current.comm_add_3,
         comm_add_4 !== undefined ? comm_add_4 : current.comm_add_4,
-        baseTransferAmount,
+        current.amount,
         current.name,
         current.title,
         differenceAmount,
@@ -776,12 +857,43 @@ async function transferBooking(req, res) {
         [
           uuidv4(),
           transferUserId,
-          `1-time account transfer from ${current.title || ''} ${current.name} to ${title || ''} ${name}. Base rate: ₹${baseTransferAmount}, Prior historical deposit: ₹${oldPaidAmount}, Extra fee: ₹${extraTransferFee}, Total collected: ₹${differenceAmount}.`,
+          `1-time account transfer from ${current.title || ''} ${current.name} to ${title || ''} ${name}.`,
           id
         ]
       );
     } catch (hErr) {
       console.warn('Could not record history log:', hErr.message);
+    }
+
+    // Also record approved entry in transfer_requests table so the Account Transfers screen reflects direct execution
+    try {
+      const { v4: uuidv4 } = require('uuid');
+      const staffName = req.user?.name || 'Super Administrator';
+      const staffRole = req.user?.role || 'superadmin';
+      const staffId = req.user?.id || null;
+      await pool.query(
+        `INSERT INTO transfer_requests (
+          id, booking_id, user_id, title, title_ta, name, name_ta,
+          star, star_ta, place, place_ta, mobile, whatsapp_number, email,
+          address, payment_method, comments, status, approved_by_id,
+          approved_by_name, approved_by_role, approved_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7,
+          $8, $9, $10, $11, $12, $13, $14,
+          $15, $16, $17, 'approved', $18, $19, $20, CURRENT_TIMESTAMP
+        )`,
+        [
+          uuidv4(), id, req.user?.id || null,
+          title || 'Selvan', title_ta || '', name.trim(), name_ta || '',
+          star || '', star_ta || '', place || '', place_ta || '',
+          mobile || '', whatsapp_number || '', email || '',
+          per_add_1 || '', payment_method || 'cash',
+          `Direct transfer by ${staffName}`,
+          staffId, staffName, staffRole
+        ]
+      );
+    } catch (trErr) {
+      console.warn('Could not record transfer_requests entry:', trErr.message);
     }
 
     // Fetch and return the updated booking

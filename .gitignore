@@ -1,4 +1,4 @@
-# Dependencies
+﻿# Dependencies
 node_modules/
 **/node_modules/
 
@@ -30,3 +30,7 @@ Thumbs.db
 .agents/
 .gemini/
 *.zip
+
+# Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep

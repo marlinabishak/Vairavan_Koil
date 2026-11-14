@@ -17,6 +17,7 @@ const powerUsersController = require('../controllers/powerUsersController');
 const kattalaiDeletionController = require('../controllers/kattalaiDeletionController');
 const bugReportsController = require('../controllers/bugReportsController');
 const thurithaKattalaiController = require('../controllers/thurithaKattalaiController');
+const transferRequestsController = require('../controllers/transferRequestsController');
 const whatsappRoutes = require('./whatsappRoutes');
 const authenticateToken = require('../middleware/authMiddleware');
 
@@ -164,6 +165,13 @@ router.get('/edit-requests', requestsController.getRequests);
 router.get('/edit-requests/booking/:booking_id', requestsController.getBookingRequest);
 router.post('/edit-requests', requestsController.createRequest);
 router.patch('/edit-requests/:id/status', requestsController.updateRequestStatus);
+
+// Account Transfer Requests
+router.get('/transfer-requests', transferRequestsController.getTransferRequests);
+router.get('/transfer-requests/booking/:booking_id', transferRequestsController.getBookingTransferRequest);
+router.post('/transfer-requests', transferRequestsController.createTransferRequest);
+router.post('/transfer-requests/:id/approve', transferRequestsController.approveTransferRequest);
+router.post('/transfer-requests/:id/reject', transferRequestsController.rejectTransferRequest);
 
 // Kattalai types (the columns on the dashboard)
 router.post('/kattalai-types', kattalaiTypes.createKattalaiType);

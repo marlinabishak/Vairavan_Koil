@@ -1,4 +1,4 @@
-const pool = require('../db/pool');
+﻿const pool = require('../db/pool');
 const { v4: uuidv4 } = require('uuid');
 
 // Ensure thuritha_kattalai_bookings table exists and system_settings has the fee
@@ -115,8 +115,22 @@ async function createThurithaKattalai(req, res) {
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Devotee name is required' });
     }
-    if (!phone || !phone.trim()) {
+    let cleanPhone = (phone || '').replace(/\D/g, '');
+    if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) cleanPhone = cleanPhone.slice(2);
+    else if (cleanPhone.length === 11 && cleanPhone.startsWith('0')) cleanPhone = cleanPhone.slice(1);
+    if (!cleanPhone) {
       return res.status(400).json({ error: 'Phone number is required' });
+    }
+    if (cleanPhone.length !== 10) {
+      return res.status(400).json({
+        error: `Invalid Mobile Number: India (+91) mobile number must be exactly 10 digits (received ${cleanPhone.length} digits).`
+      });
+    }
+    if (email && String(email).trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(String(email).trim())) {
+        return res.status(400).json({ error: 'Invalid Email Address format.' });
+      }
     }
     if (!booking_date) {
       return res.status(400).json({ error: 'Booking date is required' });
@@ -254,6 +268,24 @@ async function updateThurithaKattalai(req, res) {
       return res.status(404).json({ error: 'Thuritha Kattalai booking not found' });
     }
 
+    let cleanPhone = undefined;
+    if (phone !== undefined && phone !== null && String(phone).trim() !== '') {
+      cleanPhone = String(phone).replace(/\D/g, '');
+      if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) cleanPhone = cleanPhone.slice(2);
+      else if (cleanPhone.length === 11 && cleanPhone.startsWith('0')) cleanPhone = cleanPhone.slice(1);
+      if (cleanPhone.length !== 10) {
+        return res.status(400).json({
+          error: `Invalid Mobile Number: India (+91) mobile number must be exactly 10 digits (received ${cleanPhone.length} digits).`
+        });
+      }
+    }
+    if (email !== undefined && email !== null && String(email).trim() !== '') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(String(email).trim())) {
+        return res.status(400).json({ error: 'Invalid Email Address format.' });
+      }
+    }
+
     await pool.query(
       `UPDATE thuritha_kattalai_bookings 
        SET name = COALESCE($1, name),
@@ -262,7 +294,7 @@ async function updateThurithaKattalai(req, res) {
            email = COALESCE($4, email),
            star = COALESCE($5, star)
        WHERE id = $6`,
-      [name, place, phone, email, star, id]
+      [name, place, cleanPhone !== undefined ? cleanPhone : phone, email, star, id]
     );
 
     const { rows: updated } = await pool.query('SELECT * FROM thuritha_kattalai_bookings WHERE id = $1', [id]);

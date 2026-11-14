@@ -4,9 +4,26 @@ const pool = require('../db/pool');
 async function getRequests(req, res) {
   try {
     const { rows } = await pool.query(`
-      SELECT e.*, b.name as booking_name, b.code as booking_code 
+      SELECT e.*, 
+             b.title as booking_title,
+             b.name as booking_name, 
+             b.code as booking_code,
+             b.star as booking_star,
+             b.place as booking_place,
+             b.mobile as booking_mobile,
+             b.whatsapp_number as booking_whatsapp,
+             b.email as booking_email,
+             b.kattalai_date,
+             b.kattalai_month,
+             b.per_add_1, b.per_add_2, b.per_add_3,
+             b.comm_add_1, b.comm_add_2, b.comm_add_3, b.comm_add_4,
+             b.updated_at as booking_updated_at,
+             b.kattalai_type_id,
+             kt.name as kattalai_type_name,
+             kt.color_key as kattalai_type_color
       FROM edit_requests e
       JOIN bookings b ON e.booking_id = b.id
+      LEFT JOIN kattalai_types kt ON b.kattalai_type_id = kt.id
       ORDER BY e.created_at DESC
     `);
     res.json(rows);
@@ -117,7 +134,29 @@ async function updateRequestStatus(req, res) {
       console.error('Audit log failed for request update:', logErr.message);
     }
     
-    const { rows } = await pool.query('SELECT * FROM edit_requests WHERE id = $1', [req.params.id]);
+    const { rows } = await pool.query(`
+      SELECT e.*, 
+             b.title as booking_title,
+             b.name as booking_name, 
+             b.code as booking_code,
+             b.star as booking_star,
+             b.place as booking_place,
+             b.mobile as booking_mobile,
+             b.whatsapp_number as booking_whatsapp,
+             b.email as booking_email,
+             b.kattalai_date,
+             b.kattalai_month,
+             b.per_add_1, b.per_add_2, b.per_add_3,
+             b.comm_add_1, b.comm_add_2, b.comm_add_3, b.comm_add_4,
+             b.updated_at as booking_updated_at,
+             b.kattalai_type_id,
+             kt.name as kattalai_type_name,
+             kt.color_key as kattalai_type_color
+      FROM edit_requests e
+      JOIN bookings b ON e.booking_id = b.id
+      LEFT JOIN kattalai_types kt ON b.kattalai_type_id = kt.id
+      WHERE e.id = $1
+    `, [req.params.id]);
     res.json(rows[0]);
   } catch (err) {
     console.error('Error [requestsController]:', err.stack || err);

@@ -286,29 +286,31 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      const firstError = Object.values(newErrors)[0];
+      alert(`Tamil Details Required: ${firstError}`);
       return;
     }
     setErrors({});
     onSubmit(formData);
   };
 
-  const getInputClass = (hasError) => 
+  const getInputClass = (hasError) =>
     `h-[38px] px-4 rounded-full border ${hasError ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-400 bg-red-50/20' : 'border-[#e2d8cb] focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] bg-white'} font-barlow text-[16px] sm:text-[14px] text-gray-800 placeholder-[#9c9186] focus:outline-none transition-all w-full shadow-sm hover:border-[#cfc2b2]`;
 
-  const getSelectClass = (hasError) => 
+  const getSelectClass = (hasError) =>
     `h-[38px] px-4 rounded-full border ${hasError ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-400 bg-red-50/20' : 'border-[#e2d8cb] focus:border-[#5c292c] focus:ring-1 focus:ring-[#5c292c] bg-white'} font-barlow text-[16px] sm:text-[14px] text-gray-800 focus:outline-none transition-all w-full appearance-none pr-8 shadow-sm hover:border-[#cfc2b2] cursor-pointer`;
 
   const cardContent = (
-    <div 
+    <div
       className="relative shadow-[0_20px_60px_-15px_rgba(70,40,20,0.25)] flex flex-col p-4 sm:p-6 bg-[#f7f1e5] border border-[#ebdccb] rounded-[24px] sm:rounded-[28px] max-w-[620px] w-full my-auto transition-all animate-fade-in max-h-[92vh] overflow-y-auto"
       style={{ maxWidth: '620px', width: '100%' }}
     >
       <div className="w-full flex flex-col gap-3">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between px-1 pb-1">
           <h3 className="text-[17px] sm:text-[18px] font-bold text-[#5c292c] font-barlow tracking-wide">
-            {initialData ? 'Step 2: Tamil Details' : 'Step 2: Tamil Details & Payment'}
+            {initialData || englishData?.isTransfer ? 'Step 2: Tamil Details' : 'Step 2: Tamil Details & Payment'}
           </h3>
           <button
             onClick={onClose}
@@ -323,7 +325,7 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3 mt-1">
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3 mt-1">
           {/* Row 1: Title & Full Name */}
           <div className="flex gap-2.5">
             <div className="w-[125px] sm:w-[138px] shrink-0">
@@ -444,34 +446,6 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
             />
           </div>
 
-          {/* Transparent Payment & Fee Breakdown Card */}
-          {englishData?.isTransfer && (
-            <div className="bg-[#faf8f5] border border-[#ebdccb] rounded-[18px] p-3.5 text-xs font-barlow shadow-xs">
-              <div className="flex items-center justify-between font-bold text-[#5c292c] pb-2 border-b border-[#ebdccb]/70">
-                <span className="flex items-center gap-1.5 text-[13px]">
-                  <span>1-Time Account Transfer Difference Fee</span>
-                </span>
-                <span className="text-[15px] font-bold text-[#c2410c]">
-                  ₹{Number(englishData.amount || 2300).toLocaleString('en-IN')}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 mt-2 pt-0.5 text-[11.5px] text-gray-700">
-                <div className="flex flex-col">
-                  <span className="text-gray-500 text-[10.5px]">Current Endowment Rate</span>
-                  <span className="font-semibold text-gray-900">₹{Number(englishData.currentRate || 3500).toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex flex-col text-right">
-                  <span className="text-gray-500 text-[10.5px]">Prior Historical Deposit</span>
-                  <span className="font-semibold text-emerald-700">-₹{Number(englishData.oldPaidAmount || 1200).toLocaleString('en-IN')}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-[#c2410c] font-bold text-xs pt-2 border-t border-[#ebdccb]/60 mt-2 bg-orange-50/60 -mx-3.5 -mb-3.5 px-3.5 py-2 rounded-b-[18px]">
-                <span>Total Difference Payable:</span>
-                <span className="text-sm font-extrabold">₹{Number(englishData.amount || 2300).toLocaleString('en-IN')}</span>
-              </div>
-            </div>
-          )}
-
           {/* Validation Banner if errors exist */}
           {Object.keys(errors).length > 0 && (
             <div className="flex items-center justify-center gap-1.5 text-red-600 text-[12px] font-barlow font-medium bg-red-50/90 py-1.5 px-3.5 rounded-full border border-red-200 self-center mt-0.5">
@@ -492,9 +466,9 @@ export default function TamilDetailsModal({ isOpen, onClose, onSubmit, initialDa
             <button
               type="submit"
               className="flex items-center justify-center gap-1.5 font-barlow font-bold text-[15px] transition-all px-8 h-[40px] rounded-full shadow-md bg-[#5c292c] hover:bg-[#4a2123] text-white hover:shadow-lg cursor-pointer active:scale-[0.99]"
-              title={initialData?.id ? "Update Details" : "Pay"}
+              title={initialData?.id ? "Update Details" : (englishData?.isTransfer ? (englishData?.isDevotee ? "Pay" : "Confirm & Execute Transfer") : "Pay")}
             >
-              {initialData?.id ? "Update Details" : "Pay"}
+              {initialData?.id ? "Update Details" : (englishData?.isTransfer ? (englishData?.isDevotee ? "Pay" : "Confirm & Execute Transfer") : "Pay")}
             </button>
           </div>
         </form>

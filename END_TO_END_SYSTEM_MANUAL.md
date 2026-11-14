@@ -115,21 +115,27 @@ During registration, the backend checks that the combination of `(kattalai_type_
 
 ---
 
-## 5. Hereditary Account Transfers (Bylaws & Calculation)
+## 5. Hereditary Account Transfers (Bylaws & Guidelines)
 
-Under Nagarathar community traditions, a perpetual kattalai may be transferred to a family successor under specific conditions:
+Under Nagarathar community traditions, a perpetual kattalai may be transferred to a family successor (son or daughter) under specific conditions:
 
 ### Transfer Bylaws:
-1. **1-Time Lifetime Rule:** A kattalai can be transferred **only once** in its lifetime. Once transferred, the `is_transferred` flag is permanently locked to `1`.
-2. **Lineage Eligibility:** In line with Sabai tradition, hereditary transfers apply to male successors bearing the honorific title **"Thiru"** or **"Selvan"**. Accounts registered under "Thirumathi" or "Selvi" are not eligible for hereditary transfer.
+1. **1-Time Lifetime Rule:** A kattalai can be transferred **only once** in its lifetime. Once transferred, the account transfer option is locked permanently.
+2. **Lineage Eligibility:** In line with Sabai tradition, hereditary transfers apply to accounts bearing the honorific title **"Thiru"** or **"Selvan"**. Accounts registered under "Thirumathi" or "Selvi" are not eligible for hereditary transfer.
 3. **Audit History:** When transferred, the sponsorship category permanently updates to **"Inheritance"**, while the original donor's name is retained in `transferred_from_name` to preserve the ancestral record.
+4. **Zero Transfer Fee:** Hereditary transfer does not charge any difference fee or extra surcharge. The devotee's historical endowment deposit is fully preserved.
 
-### Difference Fee Calculation:
-The successor pays the difference between the current base endowment rate and the original deposit, plus the standard transfer fee:
-* Current Base Endowment: **Rs. 3,500**
-* Prior Historical Deposit: **Rs. 1,200**
-* Transfer Archanai Fee: **Rs. 200**
-* **Total Difference Collected:** $(3,500 - 1,200) + 200 =$ **Rs. 2,500**
+### Transfer Request & Approval Workflow:
+* **Devotee Submission:** Devotees submit their successor's information (Name, Star, Place, Phone, WhatsApp, and Payment Mode used). The request is safely recorded with status **"Pending Admin Approval"**.
+* **Admin Verification Screen (`/transfer-requests`):** Administrators and Super Administrators review pending transfers, verify the successor and payment mode, and click **"Approve & Execute Transfer"**.
+* **Automatic Record Update:** Upon approval, the booking is instantly updated with the successor's details, the category updates to "Inheritance", and the audit log records: `ACCOUNT_TRANSFER: Approved by [Admin Name]`.
+* **Direct Admin Transfers:** When initiated directly by a Super Administrator or Administrator, the transfer takes effect immediately and appears on the transfers screen as `Approved by Super Administrator`.
+
+### Transfer Request & Approval Workflow:
+* **Devotee Submission:** Devotees submit their successor's information (Name, Star, Place, Phone, WhatsApp, and Payment Mode used). The request is safely recorded with status **"Pending Admin Approval"**.
+* **Admin Verification Screen (`/transfer-requests`):** Administrators and Super Administrators review pending transfers, verify the successor and payment mode, and click **"Approve & Execute Transfer"**.
+* **Automatic Record Update:** Upon approval, the booking is instantly updated with the successor's details, the category updates to "Inheritance", and the audit log records: `ACCOUNT_TRANSFER: Approved by [Admin Name]`.
+* **Direct Admin Transfers:** When initiated directly by a Super Administrator or Administrator, the transfer takes effect immediately and appears on the transfers screen as `Approved by Super Administrator`.
 
 ---
 
@@ -294,3 +300,7 @@ Before deploying updates to production, the platform is verified against two com
 ---
 
 *End of System Operations & Engineering Manual.*
+
+
+
+here in super admin 

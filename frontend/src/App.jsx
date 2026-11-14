@@ -13,6 +13,7 @@ import WhatsAppDashboard from './pages/WhatsAppDashboard.jsx';
 import Profiles from './pages/Profiles.jsx';
 import BugReportsPage from './pages/BugReportsPage.jsx';
 import ThurithaKattalaiRegister from './pages/ThurithaKattalaiRegister.jsx';
+import TransferRequestsPage from './pages/TransferRequestsPage.jsx';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -75,6 +76,8 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/history" element={<History />} />
             <Route path="/requests" element={<RequestsPage />} />
+            <Route path="/transfer-requests" element={<TransferRequestsPage />} />
+            <Route path="/transfers" element={<TransferRequestsPage />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/profiles" element={<Profiles />} />
             <Route path="/profile" element={<Profiles />} />

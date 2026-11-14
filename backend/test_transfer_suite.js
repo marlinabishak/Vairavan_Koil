@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+﻿const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 
 // Configure environment for Aiven MySQL without committing raw secrets
@@ -161,16 +161,12 @@ async function runTestSuite() {
     });
 
     assert('Transfer API returned success', transferSuccess);
-    assert('Calculated difference is EXACTLY ₹2900 (₹3500 - ₹600)', transferDiffAmount === 2900, `Calculated: ₹${transferDiffAmount}`);
+    assert('Calculated difference is ₹0 (free transfer)', transferDiffAmount === 0, `Calculated: ₹${transferDiffAmount}`);
     assert("Booking updated to new title 'Selvi'", transferUpdatedBooking?.title === 'Selvi');
     assert("Booking updated to new name 'Valli Daughter'", transferUpdatedBooking?.name === 'Valli Daughter');
     assert("Booking is_transferred flag set to 1", transferUpdatedBooking?.is_transferred === 1);
     assert("Booking transferred_from_name recorded 'Ramanathan Father'", transferUpdatedBooking?.transferred_from_name === 'Ramanathan Father');
     assert("Booking transferred_at timestamp is set", Boolean(transferUpdatedBooking?.transferred_at));
-
-    // Verify payment record in DB
-    const { rows: payRows } = await pool.query("SELECT * FROM payments WHERE booking_id = $1 ORDER BY created_at DESC LIMIT 1", [testBookingId]);
-    assert('Payment record inserted for difference amount ₹2900', parseFloat(payRows[0]?.amount) === 2900 && payRows[0]?.method === 'upi');
 
     // Verify audit log in DB
     const { rows: logRows } = await pool.query("SELECT * FROM history_logs WHERE booking_id = $1 AND action = 'ACCOUNT_TRANSFER'", [testBookingId]);

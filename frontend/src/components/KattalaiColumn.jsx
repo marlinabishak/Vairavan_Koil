@@ -56,6 +56,15 @@ export default function KattalaiColumn({ kattalaiType, bookings = [], onTogglePr
     }
   }
 
+  // Find next empty slot in sequence
+  let nextEmptySlot = null;
+  for (let s = 1; s <= maxSlots; s++) {
+    if (!slotMap[s]) {
+      nextEmptySlot = s;
+      break;
+    }
+  }
+
   const slotItems = [];
   for (let s = 1; s <= maxSlots; s++) {
     const booking = slotMap[s];
@@ -75,7 +84,7 @@ export default function KattalaiColumn({ kattalaiType, bookings = [], onTogglePr
           key={`slot-${s}`} 
           colorKey={kattalaiType.color_key} 
           label={isArchanai ? 'New Thuritha Kattalai' : 'New Nithiya Kattalai'}
-          onClick={() => onAddNew(kattalaiType, s)} 
+          onClick={() => onAddNew(kattalaiType, isArchanai ? s : (nextEmptySlot || s))} 
         />
       );
     }
@@ -96,13 +105,15 @@ export default function KattalaiColumn({ kattalaiType, bookings = [], onTogglePr
   }
 
   const columnTitle = isArchanai ? 'Thuritha Kattalai' : kattalaiType.name;
+  const poojaTime = kattalaiType.color_key === 'morning' ? '11:30 AM' : (isArchanai ? '' : '7:30 PM');
 
   return (
     <div>
       {/* Section label: Barlow 400, 12px/14.4px, black */}
-      <p className="font-barlow font-normal text-fig-12 text-fig-text" style={{ marginBottom: '5px' }}>
-        {columnTitle}
-      </p>
+      <div className="flex items-center justify-between font-barlow text-fig-12 text-fig-text" style={{ marginBottom: '5px' }}>
+        <p className="font-normal">{columnTitle}</p>
+        {poojaTime && <span className="text-[11px] font-semibold text-[#8c6b58]">{poojaTime}</span>}
+      </div>
 
       {/* Stacked pills — 10px vertical gap between each */}
       <div className="flex flex-col" style={{ gap: '10px' }}>

@@ -514,7 +514,20 @@ export default function DashboardHeader({
                           <svg className="w-4 h-4 text-[#8c7b70] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
-                          <span className="truncate">Devotee Edit Requests</span>
+                          <span className="truncate">Kattalai Edit Requests</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setIsProfileOpen(false);
+                            navigate('/transfer-requests');
+                          }}
+                          className="flex items-center gap-2.5 w-full text-left px-3 h-[38px] rounded-[12px] text-[13px] font-medium text-gray-700 hover:text-[#5c292c] hover:bg-white transition-all"
+                        >
+                          <svg className="w-4 h-4 text-[#8c7b70] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                          </svg>
+                          <span className="truncate">Account Transfer Requests</span>
                         </button>
 
                         <button

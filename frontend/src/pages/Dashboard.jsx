@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef, useMemo, Fragment } from 'react';
+﻿import React, { useEffect, useState, useCallback, useRef, useMemo, Fragment } from 'react';
 import { api } from '../api/client.js';
 import DashboardHeader from '../components/DashboardHeader.jsx';
 import KattalaiColumn from '../components/KattalaiColumn.jsx';
@@ -42,7 +42,7 @@ function getMonthRange(dateStr) {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  
+
   const isDevotee = user?.role === 'user';
 
   const [date, setDate] = useState(() => {
@@ -110,13 +110,13 @@ export default function Dashboard() {
         const { fromDate, toDate } = getWeekRange(date);
         const d1 = new Date(fromDate + 'T00:00:00');
         const d2 = new Date(toDate + 'T00:00:00');
-        return `${d1.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} – ${d2.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+        return `${d1.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} â€“ ${d2.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
       }
       if (view === 'monthly') {
         if (customRange.fromDate && customRange.toDate) {
           const d1 = new Date(customRange.fromDate + 'T00:00:00');
           const d2 = new Date(customRange.toDate + 'T00:00:00');
-          return `${d1.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} – ${d2.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+          return `${d1.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} â€“ ${d2.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
         }
         const d = new Date(date + 'T00:00:00');
         return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
@@ -168,7 +168,7 @@ export default function Dashboard() {
         api.getTodos().catch(() => []),
         api.getThurithaKattalai(date).catch(() => ({ data: [] }))
       ]);
-      
+
       setKattalaiTypes(fetchedTypes);
       setBookings(fetchedBookings);
       setPanchangam(fetchedPanchangam);
@@ -281,7 +281,7 @@ export default function Dashboard() {
       const bDate = new Date(Date.UTC(today.getFullYear(), booking.kattalai_month - 1, booking.kattalai_date));
       const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
       const diffDays = Math.ceil(Math.abs(bDate - todayUTC) / (1000 * 60 * 60 * 24));
-      
+
       if (diffDays > 5 && user.role !== 'superadmin') {
         alert("Only superadmin can modify attendance beyond the 5-day window.");
         return;
@@ -349,8 +349,8 @@ export default function Dashboard() {
   async function handleAddTodoItem(listId) {
     const name = prompt('Name to add:');
     if (!name) return;
-    setTodos(prev => prev.map(list => 
-      list.id === listId 
+    setTodos(prev => prev.map(list =>
+      list.id === listId
         ? { ...list, items: [...list.items, { id: Date.now(), name, completed: false }] }
         : list
     ));
@@ -358,13 +358,13 @@ export default function Dashboard() {
 
   // Build the renderable blocks (columns + todo list)
   const renderBlocks = [];
-  
+
   if (kattalaiTypes.length > 0) {
     kattalaiTypes.forEach((kt) => {
       const bks = bookingsFor(kt);
       // For devotees, hide columns where they have no bookings
       if (isDevotee && bks.length === 0) return;
-      
+
       renderBlocks.push(
         <div key={`col-${kt.id}`} className="w-full md:w-[300px] flex-shrink-0">
           <KattalaiColumn
@@ -413,9 +413,9 @@ export default function Dashboard() {
 
     renderBlocks.push(
       <div key="todo-list" className="w-full md:w-[300px] flex-shrink-0 mt-4 md:mt-0">
-        <ToDoList 
-          lists={mappedLists} 
-          onAddItem={handleAddTodoItem} 
+        <ToDoList
+          lists={mappedLists}
+          onAddItem={handleAddTodoItem}
           onPrintList={setPrintList}
         />
       </div>
@@ -439,7 +439,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div 
+    <div
       className="w-full min-h-screen md:min-h-0 md:h-screen md:max-h-screen md:overflow-hidden pb-[50px] md:pb-2 flex flex-col bg-cover bg-bottom bg-no-repeat"
       style={{ backgroundImage: "linear-gradient(rgba(244, 234, 215, 0.88), rgba(244, 234, 215, 0.88)), url('/background.png')" }}
     >
@@ -467,7 +467,7 @@ export default function Dashboard() {
             <div className="text-[#5c292c] font-barlow text-xl">Loading...</div>
           </div>
         )}
-        
+
         {renderBlocks.length > 0 && (
           <div className="flex flex-col md:flex-row px-[16px] md:px-[120px] gap-[16px] md:gap-0 mt-[12px]">
             {renderBlocks.map((block, index) => (
@@ -498,7 +498,7 @@ export default function Dashboard() {
         >
           <span>{formattedStickyDate}</span>
           <svg width="12" height="7" viewBox="0 0 14 8" fill="none">
-            <path d="M1 7L7 1L13 7" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M1 7L7 1L13 7" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       </div>

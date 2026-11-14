@@ -265,10 +265,10 @@ export const api = {
     const token = localStorage.getItem('token');
     const headers = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    
-    const response = await fetch(`${BASE_URL}/bookings/export`, { headers });
+
+    const response = await fetch(`${getBaseUrl()}/bookings/export`, { headers });
     if (!response.ok) throw new Error('Failed to export');
-    
+
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -307,7 +307,7 @@ export const api = {
     const headers = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const response = await fetch(`${BASE_URL}/bug-reports`, {
+    const response = await fetch(`${getBaseUrl()}/bug-reports`, {
       method: 'POST',
       headers,
       body: formData
@@ -320,6 +320,13 @@ export const api = {
   },
   getBugReports: (status) => request(`/bug-reports${status && status !== 'all' ? `?status=${encodeURIComponent(status)}` : ''}`),
   updateBugReportStatus: (id, data) => request(`/bug-reports/${id}/status`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Account Transfer Requests (Devotee & Admin workflow)
+  getTransferRequests: (status) => request(`/transfer-requests${status && status !== 'all' ? `?status=${encodeURIComponent(status)}` : ''}`),
+  getTransferRequestForBooking: (bookingId) => request(`/transfer-requests/booking/${bookingId}`),
+  createTransferRequest: (data) => request('/transfer-requests', { method: 'POST', body: JSON.stringify(data) }),
+  approveTransferRequest: (id) => request(`/transfer-requests/${id}/approve`, { method: 'POST' }),
+  rejectTransferRequest: (id, reason) => request(`/transfer-requests/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
 
   // Thuritha Kattalai (On-the-day Walk-in Archanai)
   getThurithaKattalai: (options) => {

@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const http = require('http');
 const path = require('path');
@@ -303,6 +303,7 @@ async function runProSeniorQA() {
       star: 'Aswini',
       place: 'MADURAI',
       code: 'U/5/TR1',
+      mobile: '9876543210',
       amount: 1200,
       kat_type: 'Lifetime',
       title_ta: 'திரு',
@@ -324,14 +325,15 @@ async function runProSeniorQA() {
       star_ta: 'உத்திரட்டாதி',
       place: 'MADURAI',
       place_ta: 'மதுரை',
+      mobile: '9876543211',
       payment_method: 'cash'
     }, {
       headers: { Authorization: `Bearer ${staffToken}` }
     });
 
     assert(transferRes.status === 200, 'Account transfer executes with HTTP 200 OK');
-    // Difference calculation: (Base 3500 - Old Paid 1200) + Extra Fee 200 = 2500
-    assert(transferRes.data.differenceAmount === 2500, 'Difference collected is EXACTLY ₹2,500 ((3500 - 1200) + 200)', `Calculated: ₹${transferRes.data.differenceAmount}`);
+    // Account transfer is a hereditary transfer with no difference fee collected
+    assert(transferRes.data.differenceAmount === 0, 'No difference fee collected for account transfer (free transfer)', `Calculated: ₹${transferRes.data.differenceAmount}`);
     assert(transferRes.data.booking.is_transferred === 1 || transferRes.data.booking.is_transferred === true, 'Booking is_transferred flag set to true');
     assert(transferRes.data.booking.kat_type === 'Inheritance', 'Sponsorship type permanently changed to "Inheritance"');
     assert(transferRes.data.booking.transferred_from_name === 'Vaidyanathan Grandfather', 'Audit trail records original devotee name');
@@ -362,6 +364,7 @@ async function runProSeniorQA() {
       kattalai_date: d150.getDate(),
       kattalai_month: d150.getMonth() + 1,
       name: 'Boundary Tester 5 Mos',
+      mobile: '9876543210',
       regn_date: today.toISOString().slice(0, 10)
     }, { headers: { Authorization: `Bearer ${staffToken}` } });
     if (b150.data?.id) createdTestBookingIds.push(b150.data.id);
@@ -375,6 +378,7 @@ async function runProSeniorQA() {
       kattalai_date: d210.getDate(),
       kattalai_month: d210.getMonth() + 1,
       name: 'Boundary Tester 7 Mos',
+      mobile: '9876543210',
       regn_date: today.toISOString().slice(0, 10)
     }, { headers: { Authorization: `Bearer ${staffToken}` } });
     if (b210.data?.id) createdTestBookingIds.push(b210.data.id);

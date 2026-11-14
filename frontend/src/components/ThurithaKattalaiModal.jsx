@@ -94,15 +94,64 @@ export default function ThurithaKattalaiModal({
 
   if (!isOpen) return null;
 
+  const handlePhoneChange = (e) => {
+    let clean = e.target.value.replace(/\D/g, '');
+    if (clean.length === 12 && clean.startsWith('91')) {
+      clean = clean.slice(2);
+    } else if (clean.length === 11 && clean.startsWith('0')) {
+      clean = clean.slice(1);
+    }
+    setPhone(clean.slice(0, 10));
+    if (error) setError('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setError('Please enter devotee full name');
+    if (!title?.trim()) {
+      const msg = 'Please select Title';
+      setError(msg);
+      alert(msg);
       return;
     }
-    if (!phone.trim()) {
-      setError('Please enter a valid mobile number');
+    if (!name?.trim()) {
+      const msg = 'Please enter devotee full name';
+      setError(msg);
+      alert(msg);
       return;
+    }
+    if (!star?.trim()) {
+      const msg = 'Please select Star';
+      setError(msg);
+      alert(msg);
+      return;
+    }
+    if (!place?.trim()) {
+      const msg = 'Please select Place';
+      setError(msg);
+      alert(msg);
+      return;
+    }
+    const cleanPhone = (phone || '').replace(/\D/g, '');
+    if (!cleanPhone) {
+      const msg = 'Please enter Mobile Number';
+      setError(msg);
+      alert(msg);
+      return;
+    }
+    if (cleanPhone.length !== 10) {
+      const msg = `Invalid Mobile Number: India (+91) mobile number must be exactly 10 digits (currently ${cleanPhone.length} digits).`;
+      setError(msg);
+      alert(msg);
+      return;
+    }
+    if (email && email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        const msg = 'Please enter a valid Email Address';
+        setError(msg);
+        alert(msg);
+        return;
+      }
     }
 
     setLoading(true);
@@ -167,7 +216,7 @@ export default function ThurithaKattalaiModal({
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-2.5">
             {error && (
               <p className="text-red-600 text-[13px] text-center font-medium bg-red-50 border border-red-200 rounded-xl py-1.5 px-3">
                 {error}
@@ -243,12 +292,22 @@ export default function ThurithaKattalaiModal({
                 </div>
                 <div className="relative flex-1 min-w-0">
                   <input 
-                    className="h-[38px] rounded-r-full border border-[#e2d8cb] bg-white font-barlow text-gray-800 placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] w-full shadow-sm px-3 text-[13.5px]"
-                    placeholder="Mobile"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    className="h-[38px] rounded-r-full border border-[#e2d8cb] bg-white font-barlow text-gray-800 placeholder-[#9c9186] focus:outline-none focus:border-[#5c292c] w-full shadow-sm pl-3 pr-12 text-[13.5px]"
+                    placeholder="10-digit Mobile"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={handlePhoneChange}
                     required
                   />
+                  {phone && (
+                    <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold ${
+                      phone.length === 10 ? 'text-emerald-600' : 'text-amber-600'
+                    }`}>
+                      {phone.length === 10 ? '✓ 10' : `${phone.length}/10`}
+                    </span>
+                  )}
                 </div>
               </div>
 
