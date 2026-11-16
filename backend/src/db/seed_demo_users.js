@@ -7,7 +7,6 @@ const ARTHAJAMA_TYPE_ID = '6ac58b1d-b720-11f1-a912-40c2ba2be375';
 const DEMO_PASSWORD_PLAIN = 'vkndps2027';
 
 async function seedDemoUsers() {
-  console.log('--- Ensuring Demo Devotee Accounts (U/0/00 & A/0/00) ---');
   try {
     const today = new Date();
     const currDate = today.getDate();
@@ -48,15 +47,16 @@ async function seedDemoUsers() {
         mobile = VALUES(mobile),
         whatsapp_number = VALUES(whatsapp_number),
         email = VALUES(email),
+        kat_type = VALUES(kat_type),
         status = VALUES(status)
     `, [
       uBookingId, UCHIKALA_TYPE_ID, currDate, currMonth,
-      'Thiru', 'திரு', 'Demo Devotee (Uchikkalam)', 'டெமோ பக்தர் (உச்சிகாலம்)', 'Ashwini', 'அசுவினி',
+      'Thiru', 'திரு', 'Demo Devotee (Uchikkalam)', 'டெமோ பக்தர் (உச்சிகாலம்)', 'Aswathi', 'அசுவினி',
       'Karaikudi', 'காரைக்குடி', 'U/0/00', '9876543210', '9876543210',
       1, 'demo.uchikkalam@vairavankoil.org',
       'Demo Illam, No. 1 Sannathi Street', 'Vairavanpatti', 'Sivagangai District - 630212',
       'Demo Illam, No. 1 Sannathi Street', 'Vairavanpatti', 'Sivagangai District - 630212',
-      3500.00, 'Nithiya Kattalai', 'active',
+      3500.00, 'Lifetime', 'active',
       'Demo Account for Uchikala Kattalai (11:30 AM Pooja) testing and verification'
     ]);
 
@@ -94,6 +94,7 @@ async function seedDemoUsers() {
         mobile = VALUES(mobile),
         whatsapp_number = VALUES(whatsapp_number),
         email = VALUES(email),
+        kat_type = VALUES(kat_type),
         status = VALUES(status)
     `, [
       aBookingId, ARTHAJAMA_TYPE_ID, currDate, currMonth,
@@ -102,7 +103,7 @@ async function seedDemoUsers() {
       1, 'demo.arthajamam@vairavankoil.org',
       'Demo Illam, No. 2 Kovil Theru', 'Vairavanpatti', 'Sivagangai District - 630212',
       'Demo Illam, No. 2 Kovil Theru', 'Vairavanpatti', 'Sivagangai District - 630212',
-      3500.00, 'Nithiya Kattalai', 'active',
+      3500.00, 'Lifetime', 'active',
       'Demo Account for Arthajama Kattalai (7:30 PM Pooja) testing and verification'
     ]);
 
@@ -166,9 +167,6 @@ async function seedDemoUsers() {
       'DEMO-TXN-A000'
     ]);
 
-    console.log('✓ Demo accounts seeded successfully:');
-    console.log('   - Uchikkalam: Code U/0/00 | PW: ' + DEMO_PASSWORD_PLAIN);
-    console.log('   - Arthajamam: Code A/0/00 | PW: ' + DEMO_PASSWORD_PLAIN);
     return true;
   } catch (err) {
     console.error('Error seeding demo users:', err);
