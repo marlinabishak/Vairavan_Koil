@@ -81,7 +81,7 @@ exports.login = async (req, res) => {
     const isEmail = rawUsername.includes('@');
 
     const devoteeQuery = `
-      SELECT b.id, b.name, b.code, b.email, b.mobile, b.whatsapp_number,
+      SELECT b.id, b.name, b.code, b.email, b.mobile, b.whatsapp_number, b.star, b.place,
              dp.password_hash, dp.is_custom_password,
              CONCAT(YEAR(CURRENT_DATE), '-', LPAD(b.kattalai_month, 2, '0'), '-', LPAD(b.kattalai_date, 2, '0')) as booking_date_str 
       FROM bookings b
@@ -105,7 +105,11 @@ exports.login = async (req, res) => {
     for (const devotee of devoteeRows) {
       let passwordValid = false;
 
-      if (devotee.password_hash) {
+      // Special demo accounts direct validation (U/0/00 & A/0/00 with vkndps2027)
+      const cleanDevoteeCode = (devotee.code || '').toLowerCase().replace(/[\s\-_/]/g, '');
+      if ((cleanDevoteeCode === 'u000' || cleanDevoteeCode === 'a000') && rawPassword === 'vkndps2027') {
+        passwordValid = true;
+      } else if (devotee.password_hash) {
         // Devotee has set a custom password -> verify using bcrypt
         passwordValid = await bcrypt.compare(rawPassword, devotee.password_hash);
       } else {
@@ -121,7 +125,9 @@ exports.login = async (req, res) => {
             email: devotee.email || '',
             role: 'user',
             name: devotee.name,
-            booking_date: devotee.booking_date_str
+            booking_date: devotee.booking_date_str,
+            star: devotee.star || '',
+            place: devotee.place || ''
           },
           JWT_SECRET,
           { expiresIn: '24h' }
@@ -151,7 +157,9 @@ exports.login = async (req, res) => {
             username: devotee.code,
             email: devotee.email || '',
             role: 'user',
-            booking_date: devotee.booking_date_str
+            booking_date: devotee.booking_date_str,
+            star: devotee.star || '',
+            place: devotee.place || ''
           }
         });
       }

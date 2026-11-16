@@ -98,6 +98,53 @@ export default function Login() {
           </div>
         )}
 
+        {/* Demo Devotee Credentials Box */}
+        <div className="mt-4 p-3 bg-white/80 rounded-[16px] border border-[#ebdccb] text-xs font-barlow shadow-2xs">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-bold text-[#5c292c] uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+              <span>🛕</span>
+              <span>Demo Devotee Logins</span>
+            </span>
+            <span className="text-[10.5px] bg-[#5c292c]/10 text-[#5c292c] px-2 py-0.5 rounded-full font-bold font-mono">
+              PW: vkndps2027
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setUsername('U/0/00');
+                setPassword('vkndps2027');
+              }}
+              className="p-2 bg-[#fdf2e9] border border-[#fed7aa] text-[#c2410c] hover:bg-[#ffedd5] rounded-xl font-bold text-left transition-all cursor-pointer flex flex-col group shadow-2xs"
+              title="Click to fill Uchikkalam demo credentials"
+            >
+              <div className="flex items-center justify-between w-full mb-0.5">
+                <span className="font-mono text-xs font-bold">U/0/00</span>
+                <span className="text-[9.5px] text-[#c2410c] opacity-70 group-hover:opacity-100">Fill ↵</span>
+              </div>
+              <span className="text-[10px] text-gray-600 font-medium leading-tight">Uchikkalam (11:30 AM)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setUsername('A/0/00');
+                setPassword('vkndps2027');
+              }}
+              className="p-2 bg-[#eff6ff] border border-[#bfdbfe] text-[#1d4ed8] hover:bg-[#dbeafe] rounded-xl font-bold text-left transition-all cursor-pointer flex flex-col group shadow-2xs"
+              title="Click to fill Arthajamam demo credentials"
+            >
+              <div className="flex items-center justify-between w-full mb-0.5">
+                <span className="font-mono text-xs font-bold">A/0/00</span>
+                <span className="text-[9.5px] text-[#1d4ed8] opacity-70 group-hover:opacity-100">Fill ↵</span>
+              </div>
+              <span className="text-[10px] text-gray-600 font-medium leading-tight">Arthajamam (7:30 PM)</span>
+            </button>
+          </div>
+        </div>
+
         <div className="mt-6 text-center text-sm font-barlow flex flex-col gap-2.5">
           <div>
             <Link to="/signup" className="text-[#f37435] hover:text-[#d05c24] font-semibold transition-colors">
