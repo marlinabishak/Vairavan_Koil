@@ -1,12 +1,12 @@
 /**
- * Vairavan Koil - Year & Month Bulk CSV Importer
+ * Vairavan Koil - Comprehensive Bulk CSV Importer (All Columns & Address Support)
  * Usage:
  *   Inside backend folder:
- *     node import_year_csv.js "C:\path\to\your_file.csv"          (Cloud Database)
- *     node import_year_csv.js "C:\path\to\your_file.csv" --local  (Local XAMPP Database)
+ *     node import_year_csv.js "../Book4.csv" --local   (Imports to local XAMPP)
+ *     node import_year_csv.js "../Book4.csv"           (Imports to Cloud Aiven MySQL)
  * 
  *   From project root:
- *     node backend/src/db/import_year_csv.js "C:\path\to\your_file.csv"
+ *     node backend/import_year_csv.js "Book4.csv" --local
  */
 
 const fs = require('fs');
@@ -18,7 +18,14 @@ const mysql = require('mysql2/promise');
 const UCHIKALA_TYPE_ID = '6ac54970-b720-11f1-a912-40c2ba2be375';
 const ARTHAJAMA_TYPE_ID = '6ac58b1d-b720-11f1-a912-40c2ba2be375';
 
-// Simple CSV parser supporting quotes and commas
+function cleanVal(v) {
+  if (v === undefined || v === null) return null;
+  const s = String(v).trim();
+  if (s === '' || s.toUpperCase() === 'NULL' || s.toLowerCase() === 'undefined') return null;
+  return s;
+}
+
+// Robust CSV parser supporting quoted strings containing commas
 function parseCSV(text) {
   const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
   if (lines.length === 0) return { headers: [], rows: [] };
@@ -59,8 +66,8 @@ function parseCSV(text) {
 async function runImport(filePath) {
   if (!filePath || filePath.startsWith('--')) {
     console.error('❌ Please provide the file path:');
-    console.error('   node import_year_csv.js "path/to/file.csv"');
-    console.error('   node import_year_csv.js "path/to/file.csv" --local  (for XAMPP)');
+    console.error('   node import_year_csv.js "path/to/file.csv" --local  (for local XAMPP)');
+    console.error('   node import_year_csv.js "path/to/file.csv"          (for Cloud Aiven)');
     process.exit(1);
   }
 
@@ -73,8 +80,8 @@ async function runImport(filePath) {
   const isLocal = process.argv.includes('--local');
 
   console.log(`=======================================================`);
-  console.log(`🏛️  VAIRAVAN KOIL: BULK YEAR/MONTH DATA IMPORTER`);
-  console.log(`📂  Reading: ${path.basename(resolved)}`);
+  console.log(`🏛️  VAIRAVAN KOIL: COMPREHENSIVE DATA IMPORTER`);
+  console.log(`📂  File: ${path.basename(resolved)}`);
   console.log(`🎯  Target DB: ${isLocal ? 'Local XAMPP (vairavan_koil)' : 'Cloud Aiven MySQL'}`);
   console.log(`=======================================================`);
 
@@ -91,124 +98,220 @@ async function runImport(filePath) {
         database: 'vairavan_koil'
       });
       db = {
-        query: async (sql, params) => {
-          let text = sql;
-          if (params && params.length) {
-            text = text.replace(/\$(\d+)/g, '?');
-            const [res] = await localConn.execute(text, params);
-            return res;
-          } else {
-            const [res] = await localConn.query(text);
-            return res;
-          }
+        query: async (sql, params = []) => {
+          const [res] = await localConn.query(sql, params);
+          return res;
         }
       };
     } catch (err) {
       console.error('❌ Failed to connect to local XAMPP MySQL:', err.message);
-      console.error('   Please make sure MySQL is started in XAMPP Control Panel.');
+      console.error('   Please make sure Apache & MySQL are running in XAMPP Control Panel.');
       process.exit(1);
     }
   } else {
     db = {
-      query: (sql, params) => pool.query(sql, params)
+      query: async (sql, params = []) => {
+        let text = sql;
+        // pool.js expects $1, $2 style parameters
+        let pIndex = 1;
+        text = text.replace(/\?/g, () => `$${pIndex++}`);
+        const res = await pool.query(text, params);
+        return res.rows || res;
+      }
     };
   }
 
   const content = fs.readFileSync(resolved, 'utf8');
-  const { rows } = parseCSV(content);
+  const { headers, rows } = parseCSV(content);
 
-  console.log(`📊 Found ${rows.length} records in CSV to process...`);
+  console.log(`📊 Total rows found in CSV: ${rows.length}`);
 
-  // Temporarily disable foreign key checks for safe bulk insert
+  // Temporarily disable foreign keys for safe batch operation
   await db.query('SET FOREIGN_KEY_CHECKS = 0');
 
-  let imported = 0;
-  let errors = 0;
+  let updatedCount = 0;
+  let insertedCount = 0;
+  let skippedCount = 0;
+  let errorCount = 0;
 
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
 
-    // Skip if row is accidentally another header
-    if (r.name === 'name' || r.code === 'code' || r.id === 'id') continue;
-    if (!r.name && !r.code) continue;
+    // Skip if row is accidentally header text
+    if (r.name === 'name' || r.code === 'code' || r.id === 'id') {
+      skippedCount++;
+      continue;
+    }
+
+    const code = cleanVal(r.code);
+    const name = cleanVal(r.name);
+    if (!name && !code) {
+      skippedCount++;
+      continue;
+    }
+
+    const id = cleanVal(r.id);
+    const date = parseInt(r.kattalai_date, 10) || null;
+    const month = parseInt(r.kattalai_month, 10) || null;
 
     // Resolve kattalai_type_id
-    let typeId = r.kattalai_type_id;
-    if (!typeId || (!typeId.includes('-') && typeId.length < 30)) {
-      const codeOrType = (r.code || r.kat_type || r.kattalai_type || '').toUpperCase();
-      if (codeOrType.startsWith('U') || codeOrType.includes('UCHI')) {
+    let typeId = cleanVal(r.kattalai_type_id);
+    if (!typeId || typeId.length < 30) {
+      const codeCheck = (code || cleanVal(r.kat_type) || '').toUpperCase();
+      if (codeCheck.startsWith('U') || codeCheck.includes('UCHI')) {
         typeId = UCHIKALA_TYPE_ID;
       } else {
         typeId = ARTHAJAMA_TYPE_ID;
       }
     }
 
-    const id = r.id && r.id.length > 10 ? r.id : uuidv4();
-    const date = parseInt(r.kattalai_date, 10) || null;
-    const month = parseInt(r.kattalai_month, 10) || null;
-    const title = r.title || 'Thiru';
-    const title_ta = r.title_ta || 'திரு';
-    const name = r.name || '';
-    const name_ta = r.name_ta || '';
-    const star = r.star || '';
-    const star_ta = r.star_ta || '';
-    const place = r.place || '';
-    const place_ta = r.place_ta || '';
-    const code = r.code || '';
-    const mobile = r.mobile || '';
-    const whatsapp = r.whatsapp_number || mobile || '';
-    const email = r.email || null;
-    const amount = parseFloat(r.amount) || 3500.00;
-    const status = r.status || 'active';
-    const kat_type = r.kat_type || 'Nithiya Kattalai';
-    const created_by = (r.created_by && r.created_by.length > 20) ? r.created_by : null;
+    const title = cleanVal(r.title) || 'Thiru';
+    const title_ta = cleanVal(r.title_ta) || (title === 'Thirumathi' ? 'திருமதி' : (title === 'Selvi' ? 'செல்வி' : (title === 'Selvan' ? 'செல்வன்' : 'திரு')));
+    const name_ta = cleanVal(r.name_ta);
+    const star = cleanVal(r.star);
+    const star_ta = cleanVal(r.star_ta);
+    const place = cleanVal(r.place);
+    const place_ta = cleanVal(r.place_ta);
+    const mobile = cleanVal(r.mobile);
+    const whatsapp = cleanVal(r.whatsapp_number) || mobile;
+    const whatsapp_same_as_mobile = (r.whatsapp_same_as_mobile === '0' || r.whatsapp_same_as_mobile === 0) ? 0 : 1;
+    const email = cleanVal(r.email);
+
+    // Complete Permanent & Communication Addresses
+    const per_add_1 = cleanVal(r.per_add_1);
+    const per_add_2 = cleanVal(r.per_add_2);
+    const per_add_3 = cleanVal(r.per_add_3);
+
+    const comm_add_1 = cleanVal(r.comm_add_1);
+    const comm_add_2 = cleanVal(r.comm_add_2);
+    const comm_add_3 = cleanVal(r.comm_add_3);
+    const comm_add_4 = cleanVal(r.comm_add_4);
+
+    const amount = parseFloat(r.amount) || 0.00;
+    const country_code = cleanVal(r.country_code) || '91';
+    const kat_type = cleanVal(r.kat_type) || 'Nithiya Kattalai';
+    const regn_date = cleanVal(r.regn_date);
+    const status = cleanVal(r.status) || 'booked';
+    const comments = cleanVal(r.comments);
+    const is_transferred = (r.is_transferred === '1' || r.is_transferred === 1) ? 1 : 0;
+    const transferred_at = cleanVal(r.transferred_at);
+    const transferred_from_name = cleanVal(r.transferred_from_name);
+    const transferred_from_title = cleanVal(r.transferred_from_title);
+    const transferred_fee_paid = parseFloat(r.transferred_fee_paid) || 0.00;
+    const created_by = (cleanVal(r.created_by) && cleanVal(r.created_by).length > 20) ? cleanVal(r.created_by) : null;
 
     try {
-      await db.query(`
-        INSERT INTO bookings (
-          id, kattalai_type_id, kattalai_date, kattalai_month,
+      // Find if this record already exists in the database
+      let matchId = null;
+      if (id) {
+        const rowsFound = await db.query('SELECT id FROM bookings WHERE id = ?', [id]);
+        if (rowsFound && rowsFound.length > 0) matchId = rowsFound[0].id;
+      }
+      if (!matchId && code) {
+        const rowsFound = await db.query('SELECT id FROM bookings WHERE code = ? LIMIT 1', [code]);
+        if (rowsFound && rowsFound.length > 0) matchId = rowsFound[0].id;
+      }
+      if (!matchId && month && date && code) {
+        const rowsFound = await db.query('SELECT id FROM bookings WHERE kattalai_month = ? AND kattalai_date = ? AND code = ? LIMIT 1', [month, date, code]);
+        if (rowsFound && rowsFound.length > 0) matchId = rowsFound[0].id;
+      }
+
+      if (matchId) {
+        // UPDATE existing record with ALL fields (including all permanent & communication addresses)
+        await db.query(`
+          UPDATE bookings SET
+            kattalai_type_id = ?,
+            kattalai_date = ?,
+            kattalai_month = ?,
+            title = ?,
+            title_ta = ?,
+            name = ?,
+            name_ta = ?,
+            star = ?,
+            star_ta = ?,
+            place = ?,
+            place_ta = ?,
+            code = ?,
+            mobile = ?,
+            whatsapp_number = ?,
+            whatsapp_same_as_mobile = ?,
+            email = ?,
+            per_add_1 = ?,
+            per_add_2 = ?,
+            per_add_3 = ?,
+            comm_add_1 = ?,
+            comm_add_2 = ?,
+            comm_add_3 = ?,
+            comm_add_4 = ?,
+            amount = ?,
+            country_code = ?,
+            kat_type = ?,
+            regn_date = ?,
+            status = ?,
+            comments = ?,
+            is_transferred = ?,
+            transferred_at = ?,
+            transferred_from_name = ?,
+            transferred_from_title = ?,
+            transferred_fee_paid = ?
+          WHERE id = ?
+        `, [
+          typeId, date, month,
           title, title_ta, name, name_ta, star, star_ta,
-          place, place_ta, code, mobile, whatsapp_number,
-          email, per_add_1, per_add_2, per_add_3,
-          amount, kat_type, status, created_by
-        ) VALUES (
-          $1, $2, $3, $4,
-          $5, $6, $7, $8, $9, $10,
-          $11, $12, $13, $14, $15,
-          $16, $17, $18, $19,
-          $20, $21, $22, $23
-        )
-        ON DUPLICATE KEY UPDATE
-          kattalai_type_id = VALUES(kattalai_type_id),
-          kattalai_date = VALUES(kattalai_date),
-          kattalai_month = VALUES(kattalai_month),
-          title = VALUES(title),
-          title_ta = VALUES(title_ta),
-          name = VALUES(name),
-          name_ta = VALUES(name_ta),
-          star = VALUES(star),
-          star_ta = VALUES(star_ta),
-          place = VALUES(place),
-          place_ta = VALUES(place_ta),
-          mobile = VALUES(mobile),
-          whatsapp_number = VALUES(whatsapp_number),
-          email = VALUES(email),
-          per_add_1 = VALUES(per_add_1),
-          per_add_2 = VALUES(per_add_2),
-          per_add_3 = VALUES(per_add_3),
-          amount = VALUES(amount),
-          status = VALUES(status)
-      `, [
-        id, typeId, date, month,
-        title, title_ta, name, name_ta, star, star_ta,
-        place, place_ta, code, mobile, whatsapp,
-        email, r.per_add_1 || '', r.per_add_2 || '', r.per_add_3 || '',
-        amount, kat_type, status, created_by
-      ]);
-      imported++;
+          place, place_ta, code, mobile, whatsapp,
+          whatsapp_same_as_mobile, email,
+          per_add_1, per_add_2, per_add_3,
+          comm_add_1, comm_add_2, comm_add_3, comm_add_4,
+          amount, country_code, kat_type, regn_date,
+          status, comments, is_transferred, transferred_at,
+          transferred_from_name, transferred_from_title, transferred_fee_paid,
+          matchId
+        ]);
+        updatedCount++;
+      } else {
+        // INSERT new record with ALL fields
+        const newId = id || uuidv4();
+        await db.query(`
+          INSERT INTO bookings (
+            id, kattalai_type_id, kattalai_date, kattalai_month,
+            title, title_ta, name, name_ta, star, star_ta,
+            place, place_ta, code, mobile, whatsapp_number,
+            whatsapp_same_as_mobile, email,
+            per_add_1, per_add_2, per_add_3,
+            comm_add_1, comm_add_2, comm_add_3, comm_add_4,
+            amount, country_code, kat_type, regn_date,
+            status, comments, is_transferred, transferred_at,
+            transferred_from_name, transferred_from_title, transferred_fee_paid,
+            created_by
+          ) VALUES (
+            ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?,
+            ?, ?,
+            ?, ?, ?,
+            ?, ?, ?, ?,
+            ?, ?, ?, ?,
+            ?, ?, ?, ?,
+            ?, ?, ?,
+            ?
+          )
+        `, [
+          newId, typeId, date, month,
+          title, title_ta, name, name_ta, star, star_ta,
+          place, place_ta, code, mobile, whatsapp,
+          whatsapp_same_as_mobile, email,
+          per_add_1, per_add_2, per_add_3,
+          comm_add_1, comm_add_2, comm_add_3, comm_add_4,
+          amount, country_code, kat_type, regn_date,
+          status, comments, is_transferred, transferred_at,
+          transferred_from_name, transferred_from_title, transferred_fee_paid,
+          created_by
+        ]);
+        insertedCount++;
+      }
     } catch (err) {
-      errors++;
-      console.error(`⚠️ Row ${i + 1} (${name} - ${code}):`, err.message);
+      errorCount++;
+      console.error(`⚠️ Error on row ${i + 1} (${code} - ${name}):`, err.message);
     }
   }
 
@@ -220,18 +323,20 @@ async function runImport(filePath) {
   }
 
   console.log(`=======================================================`);
-  console.log(`✅  IMPORT COMPLETE!`);
-  console.log(`   - Target: ${isLocal ? 'Local XAMPP' : 'Cloud Aiven'}`);
-  console.log(`   - Successfully Imported/Updated: ${imported} bookings`);
-  if (errors > 0) {
-    console.log(`   - Errors Encountered: ${errors}`);
+  console.log(`✅  IMPORT COMPLETED SUCCESSFULLY!`);
+  console.log(`   - Updated Existing Records: ${updatedCount}`);
+  console.log(`   - Inserted New Records:     ${insertedCount}`);
+  if (skippedCount > 0) {
+    console.log(`   - Skipped (Headers/Empty):  ${skippedCount}`);
+  }
+  if (errorCount > 0) {
+    console.log(`   - Errors Encountered:       ${errorCount}`);
   }
   console.log(`=======================================================`);
   process.exit(0);
 }
 
 if (require.main === module) {
-  // Grab the file path from args (ignore flags like --local)
   const args = process.argv.slice(2).filter(a => !a.startsWith('--'));
   const targetFile = args[0];
   runImport(targetFile).catch(err => {
