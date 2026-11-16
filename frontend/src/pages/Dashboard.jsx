@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useCallback, useRef, useMemo, Fragment } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo, Fragment } from 'react';
 import { api } from '../api/client.js';
 import DashboardHeader from '../components/DashboardHeader.jsx';
 import KattalaiColumn from '../components/KattalaiColumn.jsx';
@@ -346,14 +346,8 @@ export default function Dashboard() {
     return filtered;
   }
 
-  async function handleAddTodoItem(listId) {
-    const name = prompt('Name to add:');
-    if (!name) return;
-    setTodos(prev => prev.map(list =>
-      list.id === listId
-        ? { ...list, items: [...list.items, { id: Date.now(), name, completed: false }] }
-        : list
-    ));
+  async function handleAddTodoItem() {
+    // Disabled for now per user request
   }
 
   // Build the renderable blocks (columns + todo list)

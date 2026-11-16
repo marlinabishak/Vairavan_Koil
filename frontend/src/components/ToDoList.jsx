@@ -28,22 +28,19 @@ export default function ToDoList({ lists, onAddItem, onPrintList }) {
       {/* Header row: "To do List" + plus icon */}
       <div className="flex items-center justify-between" style={{ marginBottom: '8px' }}>
         <span className="font-barlow font-normal text-fig-12 text-fig-text">To do List</span>
-        <button
-          type="button"
-          onClick={() => onAddItem && onAddItem(lists[0]?.id)}
-          className="flex items-center justify-center cursor-pointer"
+        <div
+          className="flex items-center justify-center"
           style={{
             width: '16px',
             height: '16px',
             borderRadius: '8px',
             border: '1px solid #000',
           }}
-          title="Add Item"
         >
           <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
             <path d="M4 1v6M1 4h6" stroke="#000" strokeWidth="1" strokeLinecap="round" />
           </svg>
-        </button>
+        </div>
       </div>
 
       {/* Todo sub-sections */}
@@ -87,11 +84,8 @@ export default function ToDoList({ lists, onAddItem, onPrintList }) {
                   Print
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => onAddItem && onAddItem(list.id)}
-                aria-label="Add item"
-                className="flex items-center justify-center cursor-pointer"
+              <div
+                className="flex items-center justify-center"
                 style={{
                   width: '10px',
                   height: '10px',
@@ -102,7 +96,7 @@ export default function ToDoList({ lists, onAddItem, onPrintList }) {
                 <svg width="6" height="6" viewBox="0 0 6 6" fill="none">
                   <path d="M3 1v4M1 3h4" stroke="#000" strokeWidth="0.8" strokeLinecap="round" />
                 </svg>
-              </button>
+              </div>
             </div>
           </div>
 

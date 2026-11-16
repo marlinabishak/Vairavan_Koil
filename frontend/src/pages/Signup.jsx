@@ -663,7 +663,7 @@ export default function Signup() {
                 {/* Title & Full Name */}
                 <div className="flex gap-2 relative h-[42px] z-30">
                   <Combobox
-                    className="w-[100px] shrink-0 h-full"
+                    className="w-[125px] shrink-0 h-full"
                     placeholder="Title"
                     value={formData.title}
                     onChange={(val) => setFormData(f => ({ ...f, title: val }))}
@@ -693,6 +693,7 @@ export default function Signup() {
                     value={formData.place}
                     onChange={(val) => setFormData(f => ({ ...f, place: val }))}
                     options={dropdowns.place}
+                    alignRight={true}
                   />
                 </div>
 
@@ -812,21 +813,22 @@ export default function Signup() {
                 {/* Row 1: Title, Name, Star */}
                 <div className="flex gap-2.5 relative h-[38px] z-30">
                   <Combobox
-                    className="w-[28%] h-full"
+                    className="w-[125px] shrink-0 h-full"
                     placeholder="Title"
                     value={formData.title}
                     onChange={(val) => setFormData(f => ({ ...f, title: val }))}
                     options={dropdowns.title}
                   />
 
-                  <input className={`${inputClass} w-[38%] h-full`} placeholder="Full Name" value={formData.name} onChange={set('name')} required />
+                  <input className={`${inputClass} flex-1 min-w-0 h-full`} placeholder="Full Name" value={formData.name} onChange={set('name')} required />
 
                   <Combobox
-                    className="w-[34%] h-full"
+                    className="w-[185px] shrink-0 h-full"
                     placeholder="Star"
                     value={formData.star}
                     onChange={(val) => setFormData(f => ({ ...f, star: val }))}
                     options={dropdowns.star}
+                    alignRight={true}
                   />
                 </div>
 

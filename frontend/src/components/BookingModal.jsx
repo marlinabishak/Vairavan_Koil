@@ -1078,6 +1078,9 @@ export default function BookingModal({ kattalaiType, existingBooking, onClose, o
                 >
                   <option value="" disabled>Star</option>
                   {dropdowns.star.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  {form.star && !dropdowns.star.includes(form.star) && (
+                    <option value={form.star}>{form.star}</option>
+                  )}
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#8c8075]">
                   {!isLockedForUser && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>}
