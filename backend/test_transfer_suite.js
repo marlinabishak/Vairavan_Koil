@@ -1,4 +1,4 @@
-﻿const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 
 // Configure environment for Aiven MySQL without committing raw secrets

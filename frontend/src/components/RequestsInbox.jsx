@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import BookingModal from './BookingModal';
 
 export default function RequestsInbox({ showEmptyMessage = false }) {
   const { user } = useAuth();
@@ -19,9 +18,6 @@ export default function RequestsInbox({ showEmptyMessage = false }) {
   // Trigger Modal for complete request details
   const [selectedRequest, setSelectedRequest] = useState(null);
 
-  // Direct Booking Editor Trigger
-  const [selectedBookingForEdit, setSelectedBookingForEdit] = useState(null);
-  const [loadingBookingEdit, setLoadingBookingEdit] = useState(false);
 
   const loadRequests = async () => {
     try {
@@ -92,23 +88,6 @@ export default function RequestsInbox({ showEmptyMessage = false }) {
     }
   };
 
-  const handleOpenBookingEditor = async (bookingId) => {
-    if (!bookingId) return;
-    setLoadingBookingEdit(true);
-    try {
-      const booking = await api.getBooking(bookingId);
-      if (booking) {
-        setSelectedBookingForEdit(booking);
-      } else {
-        alert('Could not find the associated Kattalai record.');
-      }
-    } catch (err) {
-      console.error('Failed to load booking for edit:', err);
-      alert(err.message || 'Failed to load Kattalai record');
-    } finally {
-      setLoadingBookingEdit(false);
-    }
-  };
 
   const pendingCount = requests.filter(r => r.status === 'pending').length;
   const approvedCount = requests.filter(r => r.status === 'approved').length;
@@ -614,42 +593,19 @@ export default function RequestsInbox({ showEmptyMessage = false }) {
             </div>
 
             {/* Permission Status Banner */}
-            <div className="p-3 rounded-xl border flex items-center justify-between gap-3 bg-white border-[#ebdccb]">
-              <div>
-                <span className="text-[11px] text-gray-500 font-semibold uppercase tracking-wider block">
-                  Current Status
-                </span>
-                <div className="mt-1">
-                  {getStatusPill(selectedRequest)}
-                </div>
+            <div className="p-3 rounded-xl border bg-white border-[#ebdccb]">
+              <span className="text-[11px] text-gray-500 font-semibold uppercase tracking-wider block">
+                Current Status
+              </span>
+              <div className="mt-1">
+                {getStatusPill(selectedRequest)}
               </div>
-              
-              {hasBeenUpdated(selectedRequest) ? (
-                <div className="text-right">
-                  <span className="text-[11px] text-emerald-700 font-bold block">
-                    ✓ Updated in Database
-                  </span>
-                  <span className="text-[10px] text-gray-500">
-                    {formatDateTime(selectedRequest.booking_updated_at).full}
-                  </span>
-                </div>
-              ) : selectedRequest.status === 'approved' ? (
-                <div className="text-right">
-                  <span className="text-[11px] text-green-700 font-bold block">
-                    Edit Unlocked
-                  </span>
-                  <span className="text-[10px] text-gray-500">
-                    Awaiting Devotee Changes
-                  </span>
-                </div>
-              ) : null}
             </div>
 
             {/* Devotee Record Details Card */}
             <div className="bg-white p-4 rounded-xl border border-[#ebdccb] flex flex-col gap-2.5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#5c292c] border-b border-[#ebdccb]/60 pb-1.5 flex items-center justify-between">
-                <span>Devotee & Kattalai Record</span>
-                <span className="font-mono text-[11px] text-[#8c5234]">ID: {selectedRequest.booking_id?.slice(0, 8)}...</span>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#5c292c] border-b border-[#ebdccb]/60 pb-1.5">
+                Devotee & Kattalai Record
               </h4>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -706,66 +662,39 @@ export default function RequestsInbox({ showEmptyMessage = false }) {
             </div>
 
             {/* Modal Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-2 border-t border-[#ebdccb]">
-              <button
-                type="button"
-                disabled={loadingBookingEdit}
-                onClick={() => handleOpenBookingEditor(selectedRequest.booking_id)}
-                className="w-full sm:w-auto px-4 py-2 bg-[#fdf2e9] text-[#c2410c] border border-[#fed7aa] hover:bg-[#ffedd5] rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                title="Open Kattalai record directly in editor"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                {loadingBookingEdit ? 'Loading Record...' : 'Open Kattalai in Editor'}
-              </button>
-
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                {selectedRequest.status === 'pending' ? (
-                  <>
-                    <button
-                      type="button"
-                      disabled={actionLoadingId === selectedRequest.id}
-                      onClick={() => handleReject(selectedRequest)}
-                      className="px-4 py-2 bg-white border border-[#ebdccb] text-red-600 hover:bg-red-50 rounded-full text-xs font-bold transition-colors cursor-pointer"
-                    >
-                      Reject
-                    </button>
-                    <button
-                      type="button"
-                      disabled={actionLoadingId === selectedRequest.id}
-                      onClick={() => handleApprove(selectedRequest)}
-                      className="px-5 py-2 bg-[#2e7d32] hover:bg-[#256828] text-white rounded-full text-xs font-bold shadow-sm transition-all cursor-pointer"
-                    >
-                      Approve Permission
-                    </button>
-                  </>
-                ) : (
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#ebdccb]">
+              {selectedRequest.status === 'pending' ? (
+                <>
                   <button
                     type="button"
-                    onClick={() => setSelectedRequest(null)}
-                    className="px-5 py-2 bg-[#5c292c] hover:bg-[#4a2123] text-white rounded-full text-xs font-bold transition-all cursor-pointer"
+                    disabled={actionLoadingId === selectedRequest.id}
+                    onClick={() => handleReject(selectedRequest)}
+                    className="px-4 py-2 bg-white border border-[#ebdccb] text-red-600 hover:bg-red-50 rounded-full text-xs font-bold transition-colors cursor-pointer"
                   >
-                    Close
+                    Reject
                   </button>
-                )}
-              </div>
+                  <button
+                    type="button"
+                    disabled={actionLoadingId === selectedRequest.id}
+                    onClick={() => handleApprove(selectedRequest)}
+                    className="px-5 py-2 bg-[#2e7d32] hover:bg-[#256828] text-white rounded-full text-xs font-bold shadow-sm transition-all cursor-pointer"
+                  >
+                    Approve Permission
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setSelectedRequest(null)}
+                  className="px-5 py-2 bg-[#5c292c] hover:bg-[#4a2123] text-white rounded-full text-xs font-bold transition-all cursor-pointer"
+                >
+                  Close
+                </button>
+              )}
             </div>
 
           </div>
         </div>
-      )}
-
-      {/* Direct Booking Editor Modal */}
-      {selectedBookingForEdit && (
-        <BookingModal
-          existingBooking={selectedBookingForEdit}
-          onClose={() => setSelectedBookingForEdit(null)}
-          onSaved={() => {
-            setSelectedBookingForEdit(null);
-            loadRequests();
-          }}
-        />
       )}
 
     </div>
