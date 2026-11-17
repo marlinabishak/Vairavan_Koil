@@ -308,37 +308,37 @@ export default function PrintModal({ list, onClose, date }) {
                 >
                   {/* SECTION 1: TOP (TO ADDRESS & STAMP) */}
                   <div className="w-full">
-                    <div className="flex justify-between items-start mb-4 sm:mb-6">
-                      <div className="font-bold text-[16px] sm:text-[17px] tracking-wider text-black pt-1">POST COVER</div>
-                      <div className="w-[64px] h-[78px] sm:w-[80px] sm:h-[95px] print:w-[80px] print:h-[95px] border border-black shrink-0"></div>
+                    <div className="flex justify-between items-start mb-4 sm:mb-6 print:mb-2">
+                      <div className="font-bold text-[16px] sm:text-[17px] print:text-[15px] tracking-wider text-black pt-1">POST COVER</div>
+                      <div className="w-[64px] h-[78px] sm:w-[80px] sm:h-[95px] print:w-[70px] print:h-[85px] border border-black shrink-0"></div>
                     </div>
                     
                     {/* Indented To section */}
-                    <div className="mb-2 pl-2 sm:pl-[15mm] print:pl-[15mm]"> 
-                      <div className="flex items-center gap-4 sm:gap-[15mm] print:gap-[15mm] mb-1.5 sm:mb-2 text-[15px] sm:text-[16px]">
+                    <div className="mb-2 pl-2 sm:pl-[15mm] print:pl-[12mm]"> 
+                      <div className="flex items-center gap-4 sm:gap-[15mm] print:gap-[12mm] mb-1.5 sm:mb-2 print:mb-1 text-[15px] sm:text-[16px] print:text-[14.5px]">
                         <span className="font-bold text-black">To</span>
                         <span className="font-bold text-black">{b.code}</span>
                       </div>
-                      <div className="pl-4 sm:pl-[25mm] print:pl-[25mm] uppercase text-[15px] sm:text-[16px] leading-relaxed">
-                        <p className="font-bold text-black mb-1">
+                      <div className="pl-4 sm:pl-[25mm] print:pl-[22mm] uppercase text-[15px] sm:text-[16px] print:text-[14px] leading-relaxed print:leading-snug">
+                        <p className="font-bold text-black mb-1 print:mb-0.5">
                           {titleDisplay}{nameDisplay}
                         </p>
                         {addressLines.map((line, i) => (
-                          <p key={i} className="text-black font-medium leading-relaxed break-words">{line}</p>
+                          <p key={i} className="text-black font-medium leading-relaxed print:leading-snug break-words">{line}</p>
                         ))}
                       </div>
                     </div>
                   </div>
 
                   {/* SECTION 2: MIDDLE (FROM ADDRESS / TEMPLE - Indented matching To's structure) */}
-                  <div className="w-full mt-6 sm:mt-[13mm] print:mt-[13mm]">
+                  <div className="w-full mt-5 sm:mt-[11mm] print:mt-[4mm]">
                     {/* Horizontal Line 1 */}
                     <div className="w-full border-b border-black"></div>
                     
                     {/* Sender header on left, details indented matching To */}
-                    <div className="py-4 sm:py-[10mm] print:py-[10mm] pl-2 sm:pl-[15mm] print:pl-[15mm] text-[15px] sm:text-[16px] text-black">
-                      <p className="font-bold text-black mb-1.5 sm:mb-2">அனுப்புனர் :</p>
-                      <div className="pl-4 sm:pl-[25mm] print:pl-[25mm] leading-relaxed">
+                    <div className="py-3.5 sm:py-[8mm] print:py-[4mm] pl-2 sm:pl-[15mm] print:pl-[12mm] text-[15px] sm:text-[16px] print:text-[14px] text-black">
+                      <p className="font-bold text-black mb-1 sm:mb-1.5 print:mb-0.5">அனுப்புனர் :</p>
+                      <div className="pl-4 sm:pl-[25mm] print:pl-[22mm] leading-relaxed print:leading-snug">
                         <p>வயிரவன் கோவில் நகரத்தார்</p>
                         <p>தர்ம பரிபாலன சபை</p>
                         <p>நகர வயிரவன்பட்டி</p>
@@ -355,21 +355,21 @@ export default function PrintModal({ list, onClose, date }) {
                   </div>
 
                   {/* SECTION 3: BOTTOM (LETTER - Symmetrically spaced below Line 2, aligned with To and அனுப்புனர்) */}
-                  <div className="w-full mt-6 sm:mt-[13mm] print:mt-[13mm] text-[15px] sm:text-[16px] text-black">
-                    <div className="pl-2 sm:pl-[15mm] print:pl-[15mm]">
-                      <p className="mb-3.5 font-bold text-[16px]">அன்புடையீர்</p>
+                  <div className="w-full mt-5 sm:mt-[11mm] print:mt-[4mm] text-[15px] sm:text-[16px] print:text-[14px] text-black">
+                    <div className="pl-2 sm:pl-[15mm] print:pl-[12mm]">
+                      <p className="mb-2.5 sm:mb-3 font-bold text-[16px] print:text-[14.5px] print:mb-1.5">அன்புடையீர்</p>
                       
-                      <p className="indent-8 sm:indent-12 print:indent-12 text-justify leading-[2rem] sm:leading-[2.2rem] print:leading-[2.2rem] mb-7 sm:mb-9 font-normal pr-3 sm:pr-[15mm] print:pr-[15mm]">
+                      <p className="indent-8 sm:indent-12 print:indent-10 text-justify leading-[1.9rem] sm:leading-[2.1rem] print:leading-[1.7rem] mb-5 sm:mb-7 print:mb-3 font-normal pr-3 sm:pr-[15mm] print:pr-[12mm]">
                         வணக்கம். இப்பவும் நம்மள் கோவிலில் <span className="font-bold mx-1">{formattedDate}</span> அன்று ஸ்ரீ வடிவுடையம்பாள் சமேத ஸ்ரீ வளரொளிநாதர் ஸ்ரீ வயிரவசுவாமிக்கு தங்கள் நட்சத்திரம் நாமதேயத்துக்கு <span className="font-bold mx-1">{kattalaiTypeWithTime}</span> பூஜை அர்ச்சனை வகையறா செய்து விபூதி குங்குமப் பிரசாதங்கள் இத்துடன் அனுப்பி வைத்திருக்கிறோம்.
                       </p>
                       
-                      <div className="flex flex-col items-end pr-3 sm:pr-[15mm] print:pr-[15mm] mb-7 sm:mb-9">
-                        <p className="mr-12 sm:mr-16 print:mr-16 mb-2 text-[15px] sm:text-[16px]">வேணும்</p>
-                        <p className="font-bold text-[15px] sm:text-[16px]">ஸ்ரீ வயிரவசுவாமி துணை.</p>
+                      <div className="flex flex-col items-end pr-3 sm:pr-[15mm] print:pr-[12mm] mb-5 sm:mb-7 print:mb-3">
+                        <p className="mr-12 sm:mr-16 print:mr-14 mb-1.5 print:mb-0.5 text-[15px] sm:text-[16px] print:text-[13.5px]">வேணும்</p>
+                        <p className="font-bold text-[15px] sm:text-[16px] print:text-[14px]">ஸ்ரீ வயிரவசுவாமி துணை.</p>
                       </div>
                     </div>
                     
-                    <p className="mt-6 sm:mt-[12mm] print:mt-[12mm] text-[13px] sm:text-[14px] text-center text-gray-800">
+                    <p className="mt-4 sm:mt-[8mm] print:mt-[3mm] text-[12.5px] sm:text-[13.5px] print:text-[11.5px] text-center text-gray-800">
                       குறிப்பு: சரியான முகவரி & SMS அனுப்ப செல்போன் நம்பரை தெரியப்படுத்தவும்
                     </p>
                   </div>
@@ -388,23 +388,25 @@ export default function PrintModal({ list, onClose, date }) {
         {/* Global print styles: strictly 1 page per booking with guaranteed page-break */}
         <style dangerouslySetInnerHTML={{__html: `
           @media print {
-            /* 1. Hide the main app entirely */
-            #root {
+            /* 1. Hide the entire application background and modals except print portal */
+            #root,
+            body > *:not(.print-portal-root) {
               display: none !important;
             }
 
             @page {
               size: A4 portrait;
-              margin: 8mm 10mm;
+              margin: 0 !important;
             }
 
             html, body {
               margin: 0 !important;
               padding: 0 !important;
               background: white !important;
-              overflow: visible !important;
+              width: 210mm !important;
               height: auto !important;
               min-height: auto !important;
+              overflow: visible !important;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
@@ -416,7 +418,7 @@ export default function PrintModal({ list, onClose, date }) {
             .print-area {
               position: static !important;
               display: block !important;
-              width: 100% !important;
+              width: 210mm !important;
               margin: 0 !important;
               padding: 0 !important;
               background: white !important;
@@ -428,19 +430,21 @@ export default function PrintModal({ list, onClose, date }) {
               box-shadow: none !important;
             }
 
-            /* 3. Strict 1-page per cover with forced page break */
+            /* 3. Strict 1-page A4 per cover with guaranteed cross-browser fit */
             .post-cover-card {
               position: relative !important;
-              display: block !important;
-              width: 100% !important;
-              max-width: 100% !important;
-              min-height: 0 !important;
-              height: auto !important;
-              max-height: 275mm !important;
+              display: flex !important;
+              flex-direction: column !important;
+              justify-content: space-between !important;
+              width: 210mm !important;
+              max-width: 210mm !important;
+              min-height: 296mm !important;
+              height: 296mm !important;
+              max-height: 296mm !important;
               box-sizing: border-box !important;
               overflow: hidden !important;
-              margin: 0 !important;
-              padding: 6mm 10mm !important;
+              margin: 0 auto !important;
+              padding: 10mm 15mm 8mm 15mm !important;
               border: none !important;
               box-shadow: none !important;
               page-break-before: auto !important;

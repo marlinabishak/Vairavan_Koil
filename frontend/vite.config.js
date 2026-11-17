@@ -20,7 +20,19 @@ export default defineConfig({
   resolve: {
     preserveSymlinks: true,
   },
-  server: { port: 5173 },
+  server: {
+    port: 5173,
+    proxy: {
+      '/uploads': {
+        target: 'http://localhost:4000',
+        changeOrigin: true
+      },
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true
+      }
+    }
+  },
   build: {
     rollupOptions: {
       output: {

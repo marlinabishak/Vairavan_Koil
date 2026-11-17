@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../api/client';
+import { api, getAssetUrl } from '../api/client';
 import BugReportModal from '../components/BugReportModal';
 import SubpageLayout from '../components/SubpageLayout';
 
@@ -256,19 +256,32 @@ export default function BugReportsPage() {
                           Attached Photos ({report.screenshot_urls.length}):
                         </span>
                         <div className="flex flex-wrap gap-2">
-                          {report.screenshot_urls.map((url, i) => (
-                            <div
-                              key={i}
-                              onClick={() => setSelectedPhoto(url)}
-                              className="w-16 h-16 rounded-xl border border-[#ebdccb] overflow-hidden bg-white shadow-xs cursor-pointer hover:opacity-90 hover:scale-105 transition-all group relative"
-                              title="Click to view full photo"
-                            >
-                              <img src={url} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover" />
-                              <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-xs">
-                                🔍
+                          {report.screenshot_urls.map((url, i) => {
+                            const fullAssetUrl = getAssetUrl(url);
+                            return (
+                              <div
+                                key={i}
+                                onClick={() => setSelectedPhoto(url)}
+                                className="w-16 h-16 rounded-xl border border-[#ebdccb] overflow-hidden bg-white shadow-xs cursor-pointer hover:opacity-90 hover:scale-105 transition-all group relative flex items-center justify-center"
+                                title="Click to view full photo"
+                              >
+                                <img
+                                  src={fullAssetUrl}
+                                  alt={`Screenshot ${i + 1}`}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    if (e.currentTarget.parentElement) {
+                                      e.currentTarget.parentElement.innerHTML = '<span class="text-xs text-gray-400">🖼️</span>';
+                                    }
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-xs">
+                                  🔍
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -315,12 +328,35 @@ export default function BugReportsPage() {
       {selectedPhoto && (
         <div
           onClick={() => setSelectedPhoto(null)}
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 p-4 flex items-center justify-center animate-fade-in cursor-zoom-out"
+          className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 p-4 flex items-center justify-center animate-fade-in cursor-zoom-out"
         >
-          <div className="relative max-w-4xl max-h-[90vh] bg-black rounded-[22px] overflow-hidden shadow-2xl p-2 border border-white/20" onClick={e => e.stopPropagation()}>
-            <img src={selectedPhoto} alt="Full size preview" className="max-w-full max-h-[82vh] object-contain rounded-xl mx-auto" />
-            <div className="flex items-center justify-between pt-2 px-3 text-white text-xs">
-              <span className="font-mono text-gray-300 truncate max-w-md">{selectedPhoto}</span>
+          <div className="relative max-w-4xl max-h-[90vh] bg-black rounded-[22px] overflow-hidden shadow-2xl p-3 border border-white/20" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-center min-h-[200px]">
+              <img
+                src={getAssetUrl(selectedPhoto)}
+                alt="Full size preview"
+                className="max-w-full max-h-[80vh] object-contain rounded-xl mx-auto"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  if (e.currentTarget.parentElement) {
+                    const fallback = document.createElement('div');
+                    fallback.className = 'text-center p-8 text-white';
+                    fallback.innerHTML = '<p class="text-sm font-semibold text-gray-300">Unable to load image preview.</p><p class="text-xs text-gray-500 mt-1">The image file may have been moved or removed from the server.</p>';
+                    e.currentTarget.parentElement.appendChild(fallback);
+                  }
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between pt-2 px-3 text-white text-xs border-t border-white/10 mt-2">
+              <a
+                href={getAssetUrl(selectedPhoto)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-gray-300 hover:text-white underline truncate max-w-md transition-colors"
+                title="Open original image in new tab"
+              >
+                {selectedPhoto} ↗
+              </a>
               <button
                 onClick={() => setSelectedPhoto(null)}
                 className="px-3.5 py-1 rounded-full bg-white/20 hover:bg-white/30 text-white font-bold transition-all cursor-pointer"

@@ -42,6 +42,23 @@ async function addOption(req, res) {
       'INSERT INTO dropdown_options (id, category, value, display_order) VALUES ($1, $2, $3, $4)',
       [id, category, value, nextOrder]
     );
+
+    // Audit log in history_logs for Panchangam & Settings tab
+    try {
+      const staffName = req.user?.name || req.user?.username || 'Administrator';
+      await pool.query(
+        `INSERT INTO history_logs (id, user_id, action, details) VALUES ($1, $2, $3, $4)`,
+        [
+          uuidv4(),
+          req.user?.id || null,
+          'Updated System Setting',
+          `Administrator ${staffName} added ${category} option "${value}".`
+        ]
+      );
+    } catch (logErr) {
+      console.warn('Dropdown add audit log warning:', logErr.message);
+    }
+
     const { rows } = await pool.query('SELECT * FROM dropdown_options WHERE id = $1', [id]);
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -53,10 +70,32 @@ async function addOption(req, res) {
 // DELETE /api/dropdown-options/:id
 async function deleteOption(req, res) {
   try {
+    const { v4: uuidv4 } = require('uuid');
+    const optRes = await pool.query('SELECT category, value FROM dropdown_options WHERE id = $1', [req.params.id]);
+    const deletedOpt = optRes.rows?.[0];
+
     const { rowCount } = await pool.query('DELETE FROM dropdown_options WHERE id = $1', [req.params.id]);
     if (rowCount === 0) {
       return res.status(404).json({ error: 'Option not found' });
     }
+
+    // Audit log in history_logs for Panchangam & Settings tab
+    try {
+      const staffName = req.user?.name || req.user?.username || 'Administrator';
+      const optDesc = deletedOpt ? `${deletedOpt.category} option "${deletedOpt.value}"` : `dropdown option (ID: ${req.params.id})`;
+      await pool.query(
+        `INSERT INTO history_logs (id, user_id, action, details) VALUES ($1, $2, $3, $4)`,
+        [
+          uuidv4(),
+          req.user?.id || null,
+          'Updated System Setting',
+          `Administrator ${staffName} removed ${optDesc}.`
+        ]
+      );
+    } catch (logErr) {
+      console.warn('Dropdown delete audit log warning:', logErr.message);
+    }
+
     res.status(204).send();
   } catch (err) {
     console.error('Error [dropdownController]:', err.stack || err);

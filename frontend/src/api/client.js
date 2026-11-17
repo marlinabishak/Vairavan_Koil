@@ -11,6 +11,21 @@ const getBaseUrl = () => {
   return (import.meta.env.VITE_API_URL || 'http://localhost:4000/api').replace(/\/+$/, '');
 };
 
+/**
+ * Resolves static asset paths (like /uploads/bug_reports/...) to the full backend URL.
+ * Automatically handles local development (localhost:4000) and production deployment.
+ */
+export const getAssetUrl = (path) => {
+  if (!path) return '';
+  if (/^(https?:|blob:|data:)/i.test(path)) {
+    return path;
+  }
+  const baseUrl = getBaseUrl();
+  const rootUrl = baseUrl.replace(/\/api\/?$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${rootUrl}${cleanPath}`;
+};
+
 async function request(path, options = {}) {
   const token = localStorage.getItem('token');
   const headers = {
