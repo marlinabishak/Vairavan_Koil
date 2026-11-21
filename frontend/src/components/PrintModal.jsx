@@ -128,7 +128,7 @@ export default function PrintModal({ list, onClose, date }) {
           devotee_count: list?.items?.length || 0,
           devotee_names: formattedDevotees
         });
-        
+
         // Refresh status in modal
         const refreshed = await api.getPrintStatus(targetDateLabel);
         setPrintStatus(refreshed);
@@ -136,7 +136,7 @@ export default function PrintModal({ list, onClose, date }) {
         console.error('Failed to record print log:', err);
       }
     }
-    
+
     setTimeout(() => {
       window.print();
     }, 150);
@@ -195,7 +195,7 @@ export default function PrintModal({ list, onClose, date }) {
     <div className="print-portal-root">
       <div className="print-modal-overlay fixed inset-0 bg-gray-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-0 sm:p-4 md:p-6 print:bg-white print:p-0">
         <div className="print-modal-container bg-white w-full max-w-5xl h-full sm:h-auto sm:max-h-[92vh] sm:rounded-2xl shadow-2xl flex flex-col print:shadow-none print:w-full print:max-w-none print:h-auto print:rounded-none overflow-hidden">
-          
+
           {/* Header - Non-printing */}
           <div className="px-3.5 py-3 sm:px-6 sm:py-4 border-b border-[#e2d8cb] bg-[#faf8f5] flex items-center justify-between gap-2 shrink-0 print:hidden">
             <div className="min-w-0 flex-1">
@@ -212,16 +212,15 @@ export default function PrintModal({ list, onClose, date }) {
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={handlePrint}
-                className={`whitespace-nowrap px-3.5 py-1.5 sm:px-5 sm:py-2 text-white rounded-full font-barlow text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95 ${
-                  printStatus?.print_count > 0 ? 'bg-[#92400e] hover:bg-[#78350f]' : 'bg-[#5c292c] hover:bg-[#4a2123]'
-                }`}
+                className={`whitespace-nowrap px-3.5 py-1.5 sm:px-5 sm:py-2 text-white rounded-full font-barlow text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95 ${printStatus?.print_count > 0 ? 'bg-[#92400e] hover:bg-[#78350f]' : 'bg-[#5c292c] hover:bg-[#4a2123]'
+                  }`}
               >
                 <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                 </svg>
                 <span>
-                  {printStatus?.print_count > 0 
-                    ? `Reprint (${printStatus.next_print_number}th Print)` 
+                  {printStatus?.print_count > 0
+                    ? `Reprint (${printStatus.next_print_number}th Print)`
                     : `Print All (${list.items.length})`}
                 </span>
               </button>
@@ -239,15 +238,13 @@ export default function PrintModal({ list, onClose, date }) {
 
           {/* Print Audit Tracking Status Banner - Non-printing */}
           {!statusLoading && printStatus && (
-            <div className={`px-4 sm:px-6 py-2.5 border-b text-xs flex flex-wrap items-center justify-between gap-2 shrink-0 print:hidden ${
-              printStatus.print_count > 0 
-                ? 'bg-amber-50/95 text-amber-900 border-amber-200' 
+            <div className={`px-4 sm:px-6 py-2.5 border-b text-xs flex flex-wrap items-center justify-between gap-2 shrink-0 print:hidden ${printStatus.print_count > 0
+                ? 'bg-amber-50/95 text-amber-900 border-amber-200'
                 : 'bg-emerald-50/95 text-emerald-900 border-emerald-200'
-            }`}>
+              }`}>
               <div className="flex items-center gap-2">
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                  printStatus.print_count > 0 ? 'bg-amber-200 text-amber-900' : 'bg-emerald-200 text-emerald-900'
-                }`}>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${printStatus.print_count > 0 ? 'bg-amber-200 text-amber-900' : 'bg-emerald-200 text-emerald-900'
+                  }`}>
                   {printStatus.print_count === 0 ? '1st Print' : `Reprint #${printStatus.next_print_number}`}
                 </span>
                 <span className="font-semibold">
@@ -279,17 +276,17 @@ export default function PrintModal({ list, onClose, date }) {
             {list.items.map((item, idx) => {
               const b = item.booking;
               const addressLines = getAddressLines(b);
-              
+
               // Time logic based on kattalai name
               let poojaTime = '';
               if (b.kattalai_name && b.kattalai_name.toLowerCase().includes('uchi')) poojaTime = '11:30 AM';
               else if (b.kattalai_name && b.kattalai_name.toLowerCase().includes('artha')) poojaTime = '07:30 PM';
-              
+
               const kattalaiTypeWithTime = `${b.kattalai_name_ta || b.kattalai_name || 'கட்டளை'} ${poojaTime}`;
-              
+
               // Format date correctly: DD-MM-YYYY
-              const formattedDate = b.kattalai_date ? 
-                `${String(b.kattalai_date).padStart(2, '0')}-${String(b.kattalai_month).padStart(2, '0')}-${date ? date.split('-')[0] : new Date().getFullYear()}` : 
+              const formattedDate = b.kattalai_date ?
+                `${String(b.kattalai_date).padStart(2, '0')}-${String(b.kattalai_month).padStart(2, '0')}-${date ? date.split('-')[0] : new Date().getFullYear()}` :
                 '';
 
               // Clean title and recipient name
@@ -298,12 +295,13 @@ export default function PrintModal({ list, onClose, date }) {
               const nameDisplay = (b.name_ta || b.name || '').trim();
 
               return (
-                <div 
-                  key={idx} 
+                <div
+                  key={idx}
                   className="post-cover-card w-[210mm] max-w-full bg-white mx-auto my-3 sm:my-6 px-4 sm:px-[15mm] pt-5 sm:pt-[12mm] pb-5 sm:pb-[10mm] shadow-sm sm:shadow-lg border border-gray-200 print:border-none rounded-lg sm:rounded-none relative text-black print:overflow-hidden"
                   style={{
                     boxSizing: 'border-box',
-                    fontFamily: "'Barlow', 'Noto Sans Tamil', 'Arial', sans-serif"
+                    fontFamily: "'Allo', 'Noto Sans Tamil', 'Arial', sans-serif",
+                    fontVariationSettings: "'ROND' 100"
                   }}
                 >
                   {/* SECTION 1: TOP (TO ADDRESS & STAMP) */}
@@ -312,9 +310,9 @@ export default function PrintModal({ list, onClose, date }) {
                       <div className="font-bold text-[16px] sm:text-[17px] print:text-[15px] tracking-wider text-black pt-1">POST COVER</div>
                       <div className="w-[64px] h-[78px] sm:w-[80px] sm:h-[95px] print:w-[70px] print:h-[85px] border border-black shrink-0"></div>
                     </div>
-                    
+
                     {/* Indented To section */}
-                    <div className="mb-2 pl-2 sm:pl-[15mm] print:pl-[12mm]"> 
+                    <div className="mb-2 pl-2 sm:pl-[15mm] print:pl-[12mm]">
                       <div className="flex items-center gap-4 sm:gap-[15mm] print:gap-[12mm] mb-1.5 sm:mb-2 print:mb-1 text-[15px] sm:text-[16px] print:text-[14.5px]">
                         <span className="font-bold text-black">To</span>
                         <span className="font-bold text-black">{b.code}</span>
@@ -334,7 +332,7 @@ export default function PrintModal({ list, onClose, date }) {
                   <div className="w-full mt-5 sm:mt-[11mm] print:mt-[4mm]">
                     {/* Horizontal Line 1 */}
                     <div className="w-full border-b border-black"></div>
-                    
+
                     {/* Sender header on left, details indented matching To */}
                     <div className="py-3.5 sm:py-[8mm] print:py-[4mm] pl-2 sm:pl-[15mm] print:pl-[12mm] text-[15px] sm:text-[16px] print:text-[14px] text-black">
                       <p className="font-bold text-black mb-1 sm:mb-1.5 print:mb-0.5">அனுப்புனர் :</p>
@@ -349,7 +347,7 @@ export default function PrintModal({ list, onClose, date }) {
                         <p>Ph : 04577 264237.</p>
                       </div>
                     </div>
-                    
+
                     {/* Horizontal Line 2 */}
                     <div className="w-full border-b border-black"></div>
                   </div>
@@ -358,17 +356,17 @@ export default function PrintModal({ list, onClose, date }) {
                   <div className="w-full mt-5 sm:mt-[11mm] print:mt-[4mm] text-[15px] sm:text-[16px] print:text-[14px] text-black">
                     <div className="pl-2 sm:pl-[15mm] print:pl-[12mm]">
                       <p className="mb-2.5 sm:mb-3 font-bold text-[16px] print:text-[14.5px] print:mb-1.5">அன்புடையீர்</p>
-                      
+
                       <p className="indent-8 sm:indent-12 print:indent-10 text-justify leading-[1.9rem] sm:leading-[2.1rem] print:leading-[1.7rem] mb-5 sm:mb-7 print:mb-3 font-normal pr-3 sm:pr-[15mm] print:pr-[12mm]">
                         வணக்கம். இப்பவும் நம்மள் கோவிலில் <span className="font-bold mx-1">{formattedDate}</span> அன்று ஸ்ரீ வடிவுடையம்பாள் சமேத ஸ்ரீ வளரொளிநாதர் ஸ்ரீ வயிரவசுவாமிக்கு தங்கள் நட்சத்திரம் நாமதேயத்துக்கு <span className="font-bold mx-1">{kattalaiTypeWithTime}</span> பூஜை அர்ச்சனை வகையறா செய்து விபூதி குங்குமப் பிரசாதங்கள் இத்துடன் அனுப்பி வைத்திருக்கிறோம்.
                       </p>
-                      
+
                       <div className="flex flex-col items-end pr-3 sm:pr-[15mm] print:pr-[12mm] mb-5 sm:mb-7 print:mb-3">
                         <p className="mr-12 sm:mr-16 print:mr-14 mb-1.5 print:mb-0.5 text-[15px] sm:text-[16px] print:text-[13.5px]">வேணும்</p>
                         <p className="font-bold text-[15px] sm:text-[16px] print:text-[14px]">ஸ்ரீ வயிரவசுவாமி துணை.</p>
                       </div>
                     </div>
-                    
+
                     <p className="mt-4 sm:mt-[8mm] print:mt-[3mm] text-[12.5px] sm:text-[13.5px] print:text-[11.5px] text-center text-gray-800">
                       குறிப்பு: சரியான முகவரி & SMS அனுப்ப செல்போன் நம்பரை தெரியப்படுத்தவும்
                     </p>
@@ -376,7 +374,7 @@ export default function PrintModal({ list, onClose, date }) {
                 </div>
               );
             })}
-            
+
             {list.items.length === 0 && (
               <div className="text-center py-12 text-gray-500 font-barlow print:hidden bg-white rounded-lg">
                 No absentees in this list to print.
@@ -386,7 +384,8 @@ export default function PrintModal({ list, onClose, date }) {
         </div>
 
         {/* Global print styles: strictly 1 page per booking with guaranteed page-break */}
-        <style dangerouslySetInnerHTML={{__html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           @media print {
             /* 1. Hide the entire application background and modals except print portal */
             #root,

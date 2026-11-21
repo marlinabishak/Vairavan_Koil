@@ -19,7 +19,12 @@ export default {
         'fig-todo-header': '#cdb9ab',
       },
       fontFamily: {
-        barlow: ['Barlow', 'sans-serif'],
+        barlow: ['"Allo"', 'sans-serif'],
+        allo: ['"Allo"', 'sans-serif'],
+        jakarta: ['"Plus Jakarta Sans"', 'sans-serif'],
+        poppins: ['Poppins', 'sans-serif'],
+        outfit: ['Outfit', 'sans-serif'],
+        originalBarlow: ['Barlow', 'sans-serif'],
       },
       borderRadius: {
         'fig-date': '3px',

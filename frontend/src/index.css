@@ -1,11 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap');
+
+@font-face {
+  font-family: 'Allo';
+  src: url('/fonts/AlloVariable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Allo';
+  src: url('/fonts/Allo-Oblique.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Allo';
+  src: url('/fonts/Allo-BoldOblique.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Force Allo with ROND 100 on font-barlow and globally so hot-reload applies immediately */
+.font-barlow {
+  font-family: 'Allo', 'Noto Sans Tamil', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-variation-settings: 'ROND' 100 !important;
+}
+
 html, body {
-  font-family: 'Barlow', sans-serif;
+  font-family: 'Allo', 'Noto Sans Tamil', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-variation-settings: 'ROND' 100;
   background: #f4ead7;
   margin: 0;
   padding: 0;

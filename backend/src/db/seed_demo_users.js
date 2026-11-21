@@ -8,9 +8,9 @@ const DEMO_PASSWORD_PLAIN = 'vkndps2027';
 
 async function seedDemoUsers() {
   try {
-    const today = new Date();
-    const currDate = today.getDate();
-    const currMonth = today.getMonth() + 1;
+    // Fixed date for demo testing accounts (fixed to 21st November - does not shift on login/startup)
+    const fixedDate = 21;
+    const fixedMonth = 11;
     const passwordHash = await bcrypt.hash(DEMO_PASSWORD_PLAIN, 10);
 
     // 1. Uchikkalam Demo Booking (U/0/00)
@@ -50,8 +50,8 @@ async function seedDemoUsers() {
         kat_type = VALUES(kat_type),
         status = VALUES(status)
     `, [
-      uBookingId, UCHIKALA_TYPE_ID, currDate, currMonth,
-      'Thiru', 'திரு', 'Demo Devotee (Uchikkalam)', 'டெமோ பக்தர் (உச்சிகாலம்)', 'Aswathi', 'அசுவினி',
+      uBookingId, UCHIKALA_TYPE_ID, fixedDate, fixedMonth,
+      'Thiru', 'திரு', 'Demo Kattalai (Uchikkalam)', 'டெமோ கட்டளை (உச்சிகாலம்)', 'Aswathi', 'அசுவினி',
       'Karaikudi', 'காரைக்குடி', 'U/0/00', '9876543210', '9876543210',
       1, 'demo.uchikkalam@vairavankoil.org',
       'Demo Illam, No. 1 Sannathi Street', 'Vairavanpatti', 'Sivagangai District - 630212',
@@ -97,8 +97,8 @@ async function seedDemoUsers() {
         kat_type = VALUES(kat_type),
         status = VALUES(status)
     `, [
-      aBookingId, ARTHAJAMA_TYPE_ID, currDate, currMonth,
-      'Thiru', 'திரு', 'Demo Devotee (Arthajamam)', 'டெமோ பக்தர் (அர்த்தஜாமம்)', 'Rohini', 'ரோகிணி',
+      aBookingId, ARTHAJAMA_TYPE_ID, fixedDate, fixedMonth,
+      'Thiru', 'திரு', 'Demo Kattalai (Arthajamam)', 'டெமோ கட்டளை (அர்த்தஜாமம்)', 'Rohini', 'ரோகிணி',
       'Devakottai', 'தேவகோட்டை', 'A/0/00', '9876543211', '9876543211',
       1, 'demo.arthajamam@vairavankoil.org',
       'Demo Illam, No. 2 Kovil Theru', 'Vairavanpatti', 'Sivagangai District - 630212',
